@@ -1,0 +1,52 @@
+# ============================================================
+# Laravel Framework
+# ============================================================
+/vendor/
+/node_modules/
+
+# Environment - JANGAN PERNAH commit .env asli
+.env
+.env.backup
+.env.production
+.env.staging
+
+# Database lokal - berisi data user nyata
+/database/database.sqlite
+/database/database.sqlite-shm
+/database/database.sqlite-wal
+
+# Storage runtime
+/storage/framework/cache/data/
+/storage/framework/sessions/
+/storage/framework/views/
+/storage/logs/*.log
+/storage/app/samba/
+
+# Bootstrap cache
+/bootstrap/cache/packages.php
+/bootstrap/cache/services.php
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+/public/hot
+/public/storage
+/public/build
+
+# PHP logs
+*.log
+
+# Composer
+composer.phar

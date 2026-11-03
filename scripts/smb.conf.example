@@ -1,0 +1,55 @@
+# ==============================================================================
+# KONFIGURASI SAMBA (/etc/samba/smb.conf) - LAB RMIK
+# Sistem Operasi: AlmaLinux 10
+# ==============================================================================
+
+[global]
+    workgroup = WORKGROUP
+    server string = Server Penyimpanan Lab RMIK
+    netbios name = LABRMIK-SAMBA
+    security = user
+    passdb backend = tdbsam
+    printing = cups
+    printcap name = cups
+    load printers = no
+    cups options = raw
+    map to guest = Bad User
+    log file = /var/log/samba/log.%m
+    max log size = 50
+
+# ------------------------------------------------------------------------------
+# 1. SHARE DINAMIS MAHASISWA
+# Windows UNC: \\IP_SERVER\mahasiswa
+# Setiap mahasiswa otomatis masuk ke folder pribadi /samba/mahasiswa/{NIM}.
+# ------------------------------------------------------------------------------
+[mahasiswa]
+    comment = Direktori Penyimpanan Pribadi Mahasiswa Lab RMIK
+    path = /samba/mahasiswa/%U
+    browseable = yes
+    read only = no
+    writable = yes
+    valid users = %U
+    invalid users = laboran, dosen, admin
+    create mask = 0777
+    directory mask = 0777
+    force create mode = 0777
+    force directory mode = 0777
+    vfs objects = acl_xattr
+    map acl inherit = yes
+
+# ------------------------------------------------------------------------------
+# 2. SHARE DINAMIS OPERASIONAL LAB (Per Akun Laboran & Dosen)
+# Windows UNC: \\IP_SERVER\operasional
+# Setiap akun operasional otomatis masuk ke folder pribadi /samba/operasional/{username}.
+# ------------------------------------------------------------------------------
+[operasional]
+    comment = Folder Akun Operasional Laboratorium RMIK (Laboran & Dosen)
+    path = /samba/operasional/%U
+    browseable = yes
+    read only = no
+    writable = yes
+    valid users = %U
+    create mask = 0777
+    directory mask = 0777
+    force create mode = 0777
+    force directory mode = 0777

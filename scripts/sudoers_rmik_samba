@@ -1,0 +1,12 @@
+# ==============================================================================
+# KONFIGURASI SUDOERS UNTUK MAKI SAMBA AUTOMATION
+# File Path di Server: /etc/sudoers.d/rmik_samba
+# Cara pasang: sudo cp sudoers_rmik_samba /etc/sudoers.d/rmik_samba && sudo chmod 0440 /etc/sudoers.d/rmik_samba
+# ==============================================================================
+
+# Berikan izin eksekusi HANYA untuk script buat_akun_samba.sh tanpa prompt password
+# User 'www' adalah user default Apache/Nginx di aaPanel
+www ALL=(ALL) NOPASSWD: /usr/local/bin/buat_akun_samba.sh
+
+# User 'apache' untuk instalasi standard AlmaLinux Apache (jika bukan www)
+apache ALL=(ALL) NOPASSWD: /usr/local/bin/buat_akun_samba.sh
