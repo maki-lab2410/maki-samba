@@ -574,6 +574,19 @@
                                    class="w-full border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
                             <p class="text-[11px] text-slate-400 mt-1">Keterangan yang tampil di bawah logo utama pada navbar dan header.</p>
                         </div>
+
+                        {{-- Host / IP Server Samba --}}
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                                <span>🌐</span>
+                                <span>Host / IP Server Samba (LAN)</span>
+                            </label>
+                            <input type="text" name="samba_server_host"
+                                   value="{{ old('samba_server_host', $settings['samba_server_host'] ?? '') }}"
+                                   placeholder="Contoh: {{ request()->getHost() }} (Kosongkan untuk otomatis menggunakan host saat ini)"
+                                   class="w-full border border-slate-200 rounded-2xl px-4 py-2.5 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                            <p class="text-[11px] text-slate-400 mt-1">IP atau hostname yang digunakan pengguna saat melakukan koneksi network share (<code class="font-mono">\\IP\share</code> atau <code class="font-mono">smb://IP/share</code>). Jika dikosongkan, sistem otomatis mendeteksi IP/Domain server yang sedang diakses saat ini (<strong class="text-blue-600 font-mono">{{ request()->getHost() }}</strong>).</p>
+                        </div>
                     </div>
 
                     {{-- Kotak Info Konfigurasi .env --}}
@@ -590,7 +603,8 @@
                             APP_INSTITUTION="Nama Instansi / Universitas Anda"<br>
                             APP_INSTITUTION_SHORT="Lab Komputer"<br>
                             APP_DESCRIPTION="Portal File Manager & Otomatisasi Samba"<br>
-                            APP_THEME="blue" <span class="text-slate-400"># Opsi: blue, emerald, violet</span>
+                            APP_THEME="blue" <span class="text-slate-400"># Opsi: blue, emerald, violet</span><br>
+                            SAMBA_SERVER_HOST="192.168.67.225" <span class="text-slate-400"># IP Server Samba LAN</span>
                         </div>
                     </div>
 

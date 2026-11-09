@@ -61,12 +61,50 @@ class Setting extends Model
     public static function getAllSettings(): array
     {
         return [
-            'app_title'        => static::get('app_title', 'Maki Samba'),
-            'institution_name' => static::get('institution_name', 'Laboratorium Rekam Medis & Informasi Kesehatan (RMIK)'),
-            'institution_short'=> static::get('institution_short', 'Lab RMIK'),
-            'app_description'  => static::get('app_description', 'Portal File Manager & Otomatisasi Samba'),
-            'app_logo'         => static::get('app_logo', null),
-            'app_theme'        => static::get('app_theme', 'blue'),
+            'app_title'          => static::get('app_title', 'Maki Samba'),
+            'institution_name'   => static::get('institution_name', 'Laboratorium Rekam Medis & Informasi Kesehatan (RMIK)'),
+            'institution_short'  => static::get('institution_short', 'Lab RMIK'),
+            'app_description'    => static::get('app_description', 'Portal File Manager & Otomatisasi Samba'),
+            'app_logo'           => static::get('app_logo', null),
+            'app_theme'          => static::get('app_theme', 'blue'),
+            'samba_server_host'  => static::get('samba_server_host', null),
         ];
+    }
+
+    /**
+     * Dapatkan IP atau hostname server Samba (LAN)
+     * Prioritas:
+     * 1. Nilai yang disetel admin di menu Pengaturan (database)
+     * 2. Nilai SAMBA_SERVER_HOST di .env jika ada dan bukan placeholder default 192.168.1.100
+     * 3. Host / IP yang sedang diakses saat ini dari browser pengguna (misal 192.168.67.225)
+     * 4. SERVER_ADDR dari web server
+     */
+    public static function getSambaHost(): string
+    {
+        $dbHost = static::get('samba_server_host');
+        if (!empty($dbHost)) {
+            return trim($dbHost);
+        }
+
+        $envHost = env('SAMBA_SERVER_HOST');
+        if (!empty($envHost) && $envHost !== '192.168.1.100') {
+            return trim($envHost);
+        }
+
+        try {
+            if (request()) {
+                $reqHost = request()->getHost();
+                if (!empty($reqHost) && !in_array($reqHost, ['localhost', '127.0.0.1'])) {
+                    return $reqHost;
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        $serverAddr = $_SERVER['SERVER_ADDR'] ?? null;
+        if (!empty($serverAddr) && $serverAddr !== '127.0.0.1') {
+            return $serverAddr;
+        }
+
+        return !empty($envHost) ? $envHost : '192.168.67.225';
     }
 }

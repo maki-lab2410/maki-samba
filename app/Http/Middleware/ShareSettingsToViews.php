@@ -24,6 +24,7 @@ class ShareSettingsToViews
         View::share('appDescription', $settings['app_description']);
         View::share('appLogo', $settings['app_logo'] ?? null);
         View::share('appTheme', $settings['app_theme'] ?? 'blue');
+        View::share('sambaServerHost', Setting::getSambaHost());
         View::share('appSettings', $settings);
 
         return $next($request);

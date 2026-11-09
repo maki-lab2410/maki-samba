@@ -75,9 +75,45 @@
     },
     
     copySmb(text) {
-        navigator.clipboard.writeText(text);
-        this.copied = true;
-        setTimeout(() => this.copied = false, 2000);
+        const self = this;
+        const successCallback = () => {
+            self.copied = true;
+            setTimeout(() => self.copied = false, 2000);
+        };
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(text).then(successCallback).catch(() => {
+                self.fallbackCopy(text, successCallback);
+            });
+        } else {
+            self.fallbackCopy(text, successCallback);
+        }
+    },
+
+    fallbackCopy(str, cb) {
+        try {
+            const ta = document.createElement('textarea');
+            ta.value = str;
+            ta.style.position = 'fixed';
+            ta.style.top = '0';
+            ta.style.left = '0';
+            ta.style.width = '2em';
+            ta.style.height = '2em';
+            ta.style.padding = '0';
+            ta.style.border = 'none';
+            ta.style.outline = 'none';
+            ta.style.boxShadow = 'none';
+            ta.style.background = 'transparent';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.focus();
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+            if (typeof cb === 'function') cb();
+        } catch (err) {
+            console.error('Copy fallback failed:', err);
+        }
     },
     
     confirmDelete(path, name, type) {

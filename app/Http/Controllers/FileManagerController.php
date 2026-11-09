@@ -125,7 +125,7 @@ class FileManagerController extends Controller
             'nim'                 => $nim,
             'role'                => $role,
             'serverIp'            => (string) ($request->server('SERVER_ADDR') ?: gethostbyname(gethostname())),
-            'sambaHost'           => (string) env('SAMBA_SERVER_HOST', '192.168.1.100'),
+            'sambaHost'           => \App\Models\Setting::getSambaHost(),
             'sambaShareName'      => $sambaShareName,
             'quotaUsed'           => $storageUsed,
             'quotaLimit'          => $quotaLimit,

@@ -61,7 +61,7 @@ class AdminController extends Controller
             'total_laboran'   => User::where('role', 'laboran')->count(),
             'total_dosen'     => User::where('role', 'dosen')->count(),
             'active_samba'    => count($liveSessions),
-            'server_host'     => env('SAMBA_SERVER_HOST', '192.168.1.100'),
+            'server_host'     => Setting::getSambaHost(),
         ];
 
         return view('admin.index', [
@@ -87,12 +87,13 @@ class AdminController extends Controller
         }
 
         $validated = $request->validate([
-            'app_title'        => ['required', 'string', 'max:100'],
-            'institution_name' => ['required', 'string', 'max:255'],
-            'institution_short'=> ['required', 'string', 'max:50'],
-            'app_description'  => ['nullable', 'string', 'max:255'],
-            'app_logo'         => ['nullable', 'file', 'mimes:png,jpg,jpeg,svg,ico,webp', 'max:2048'],
-            'app_theme'        => ['nullable', 'string', 'in:blue,emerald,violet,rose'],
+            'app_title'          => ['required', 'string', 'max:100'],
+            'institution_name'   => ['required', 'string', 'max:255'],
+            'institution_short'  => ['required', 'string', 'max:50'],
+            'app_description'    => ['nullable', 'string', 'max:255'],
+            'samba_server_host'  => ['nullable', 'string', 'max:100'],
+            'app_logo'           => ['nullable', 'file', 'mimes:png,jpg,jpeg,svg,ico,webp', 'max:2048'],
+            'app_theme'          => ['nullable', 'string', 'in:blue,emerald,violet,rose'],
         ], [
             'app_title.required'        => 'Nama aplikasi tidak boleh kosong.',
             'institution_name.required' => 'Nama lengkap instansi tidak boleh kosong.',
@@ -106,6 +107,7 @@ class AdminController extends Controller
         Setting::set('institution_short', trim($validated['institution_short']));
         Setting::set('app_description', trim($validated['app_description'] ?? ''));
         Setting::set('app_theme', $request->input('app_theme', 'blue'));
+        Setting::set('samba_server_host', trim((string) $request->input('samba_server_host', '')));
 
         // Handle Upload Logo Kustom
         if ($request->hasFile('app_logo')) {

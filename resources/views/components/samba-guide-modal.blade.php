@@ -4,7 +4,7 @@
     $isStaff = ($user && ($user->isLaboran() || $user->isAdmin())) || in_array(strtolower(session('samba_role', '')), ['laboran', 'admin']) || in_array(strtolower(session('samba_nim', '')), ['laboran', 'admin']);
     $shareName = $isStaff ? env('SAMBA_OPERASIONAL_SHARE', 'operasional') : env('SAMBA_MAHASISWA_SHARE', 'mahasiswa');
     $sambaUser = $user ? $user->nim : session('samba_nim', 'NIM_ANDA');
-    $serverHost = env('SAMBA_SERVER_HOST', '192.168.1.100');
+    $serverHost = $sambaServerHost ?? \App\Models\Setting::getSambaHost();
     $windowsPath = "\\\\{$serverHost}\\{$shareName}";
     $macPath = "smb://{$serverHost}/{$shareName}";
 @endphp
@@ -14,9 +14,44 @@
          guideTab: 'windows',
          copiedText: '',
          copyToClipboard(text, type) {
-             navigator.clipboard.writeText(text);
-             this.copiedText = type;
-             setTimeout(() => { this.copiedText = ''; }, 2500);
+             const self = this;
+             const successCallback = () => {
+                 self.copiedText = type;
+                 setTimeout(() => { self.copiedText = ''; }, 2500);
+             };
+
+             if (navigator.clipboard && window.isSecureContext) {
+                 navigator.clipboard.writeText(text).then(successCallback).catch(() => {
+                     self.fallbackCopy(text, successCallback);
+                 });
+             } else {
+                 self.fallbackCopy(text, successCallback);
+             }
+         },
+         fallbackCopy(str, cb) {
+             try {
+                 const ta = document.createElement('textarea');
+                 ta.value = str;
+                 ta.style.position = 'fixed';
+                 ta.style.top = '0';
+                 ta.style.left = '0';
+                 ta.style.width = '2em';
+                 ta.style.height = '2em';
+                 ta.style.padding = '0';
+                 ta.style.border = 'none';
+                 ta.style.outline = 'none';
+                 ta.style.boxShadow = 'none';
+                 ta.style.background = 'transparent';
+                 ta.style.opacity = '0';
+                 document.body.appendChild(ta);
+                 ta.focus();
+                 ta.select();
+                 document.execCommand('copy');
+                 document.body.removeChild(ta);
+                 if (typeof cb === 'function') cb();
+             } catch (err) {
+                 console.error('Copy fallback failed:', err);
+             }
          }
      }"
      class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
