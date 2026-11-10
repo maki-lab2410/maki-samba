@@ -7,16 +7,29 @@
 
 set -e # Hentikan eksekusi jika terjadi error
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+# Muat konfigurasi server lokal jika ada (file ini diabaikan oleh git)
+if [ -f "$SCRIPT_DIR/.deploy.env" ]; then
+    # shellcheck disable=SC1091
+    source "$SCRIPT_DIR/.deploy.env"
+fi
+
 SERVER_IP="${SERVER_IP:-YOUR_SERVER_IP}"
 SERVER_USER="${SERVER_USER:-root}"
 REMOTE_DIR="${REMOTE_DIR:-/www/wwwroot/maki-samba}"
 
+if [ "$SERVER_IP" = "YOUR_SERVER_IP" ]; then
+    echo "❌ Error: SERVER_IP belum disetel!"
+    echo "   Buat file .deploy.env dengan isi: SERVER_IP=192.168.x.x"
+    echo "   Atau jalankan: SERVER_IP=\"192.168.x.x\" ./deploy.sh"
+    exit 1
+fi
+
 echo "=================================================================="
 echo "🚀 MEMULAI DEPLOY OTOMATIS KE SERVER ($SERVER_USER@$SERVER_IP)"
 echo "=================================================================="
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
 
 # 1. Pastikan folder tujuan ada di server & cek apakah rsync tersedia
 echo "🔍 [1/3] Menyiapkan direktori tujuan di server..."

@@ -76,7 +76,7 @@ class Setting extends Model
      * Prioritas:
      * 1. Nilai yang disetel admin di menu Pengaturan (database)
      * 2. Nilai SAMBA_SERVER_HOST di .env jika ada dan bukan placeholder default 192.168.1.100
-     * 3. Host / IP yang sedang diakses saat ini dari browser pengguna (misal 192.168.67.225)
+     * 3. Host / IP yang sedang diakses saat ini dari browser pengguna (misal 192.168.1.100)
      * 4. SERVER_ADDR dari web server
      */
     public static function getSambaHost(): string
@@ -105,6 +105,6 @@ class Setting extends Model
             return $serverAddr;
         }
 
-        return !empty($envHost) ? $envHost : '192.168.67.225';
+        return !empty($envHost) ? $envHost : '192.168.1.100';
     }
 }

@@ -604,7 +604,7 @@
                             APP_INSTITUTION_SHORT="Lab Komputer"<br>
                             APP_DESCRIPTION="Portal File Manager & Otomatisasi Samba"<br>
                             APP_THEME="blue" <span class="text-slate-400"># Opsi: blue, emerald, violet</span><br>
-                            SAMBA_SERVER_HOST="192.168.67.225" <span class="text-slate-400"># IP Server Samba LAN</span>
+                            SAMBA_SERVER_HOST="192.168.1.100" <span class="text-slate-400"># IP Server Samba LAN</span>
                         </div>
                     </div>
 

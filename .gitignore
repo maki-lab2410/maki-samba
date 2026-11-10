@@ -9,6 +9,7 @@
 .env.backup
 .env.production
 .env.staging
+.deploy.env
 
 # Database lokal - berisi data user nyata
 /database/database.sqlite
