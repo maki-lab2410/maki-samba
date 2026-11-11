@@ -72,34 +72,47 @@ mkdir -p /samba/operasional/laboran
 chown -R laboran:laboran /samba/operasional/laboran 2>/dev/null || true
 chmod -R 750 /samba/operasional/laboran
 
-# Pindahkan semua akun staf (NIP diawali 0686.*) dari /samba/mahasiswa ke /samba/operasional jika masih ada yang tersisa
+# Pindahkan semua akun staf (NIP diawali 0686.*) dari /samba/mahasiswa ke /samba/operasional secara aman tanpa menumpuk folder
 for NIP_DIR in /samba/mahasiswa/0686.*; do
   if [ -d "$NIP_DIR" ]; then
     NIP_NAME=$(basename "$NIP_DIR")
-    echo "   -> Memindahkan folder operasional (NIP: $NIP_NAME) ke /samba/operasional/..."
-    mv "$NIP_DIR" "/samba/operasional/$NIP_NAME"
-    chmod -R 750 "/samba/operasional/$NIP_NAME"
+    echo "   -> Memindahkan isi folder staf ($NIP_NAME) ke /samba/operasional/$NIP_NAME/..."
+    mkdir -p "/samba/operasional/$NIP_NAME"
+    cp -a "$NIP_DIR/." "/samba/operasional/$NIP_NAME/" 2>/dev/null || true
+    rm -rf "$NIP_DIR"
   fi
 done
 
-chmod 755 /samba/operasional
-chmod 755 /samba/mahasiswa
+# Periksa & ratakan folder bersarang (nested) jika ada folder akun di dalam folder akun sendiri
+for USER_DIR in /samba/operasional/*; do
+  if [ -d "$USER_DIR" ]; then
+    UNAME=$(basename "$USER_DIR")
+    if [ -d "$USER_DIR/$UNAME" ]; then
+      echo "   -> Memulihkan file dari folder bersarang $USER_DIR/$UNAME ke $USER_DIR/..."
+      cp -a "$USER_DIR/$UNAME/." "$USER_DIR/" 2>/dev/null || true
+      rm -rf "$USER_DIR/$UNAME"
+    fi
+  fi
+done
+
+chmod -R 777 /samba/operasional
+chmod -R 777 /samba/mahasiswa
+chown -R root:www /samba/operasional /samba/mahasiswa 2>/dev/null || true
 
 # Sinkronkan kuota default mahasiswa ke 1 GB (1073741824 bytes)
 if [ -f "$PROJECT_DIR/database/database.sqlite" ]; then
   sqlite3 "$PROJECT_DIR/database/database.sqlite" "UPDATE users SET quota_limit=1073741824 WHERE role='mahasiswa' AND (quota_limit=209715200 OR quota_limit IS NULL OR quota_limit=0);" 2>/dev/null || true
+  sqlite3 "$PROJECT_DIR/database/database.sqlite" "UPDATE users SET quota_limit=10737418240 WHERE (role='laboran' OR username LIKE '0686.%') AND (quota_limit=1073741824 OR quota_limit IS NULL OR quota_limit=0);" 2>/dev/null || true
   sqlite3 "$PROJECT_DIR/database/database.sqlite" "ALTER TABLE users ADD COLUMN semester INTEGER DEFAULT 1;" 2>/dev/null || true
   sqlite3 "$PROJECT_DIR/database/database.sqlite" "ALTER TABLE users ADD COLUMN kelas TEXT DEFAULT NULL;" 2>/dev/null || true
 fi
 
-# ACL untuk Web Server (Memberikan akses aman tanpa world-writable 777)
+# ACL untuk Web Server & Samba (Dua arah: Web & Samba dapat membaca dan menulis)
 if command -v setfacl &> /dev/null; then
-  setfacl -R -m u:www:rwx /samba/operasional 2>/dev/null || true
-  setfacl -R -d -m u:www:rwx /samba/operasional 2>/dev/null || true
-  setfacl -R -m u:www:rwx /samba/mahasiswa 2>/dev/null || true
-  setfacl -R -d -m u:www:rwx /samba/mahasiswa 2>/dev/null || true
-  setfacl -R -m u:laboran:rwx /samba/operasional 2>/dev/null || true
-  setfacl -R -d -m u:laboran:rwx /samba/operasional 2>/dev/null || true
+  setfacl -R -m u:www:rwx -m d:u:www:rwx /samba/operasional 2>/dev/null || true
+  setfacl -R -m g:www:rwx -m d:g:www:rwx /samba/operasional 2>/dev/null || true
+  setfacl -R -m u:www:rwx -m d:u:www:rwx /samba/mahasiswa 2>/dev/null || true
+  setfacl -R -m g:www:rwx -m d:g:www:rwx /samba/mahasiswa 2>/dev/null || true
 fi
 
 # SELinux contexts
@@ -116,11 +129,15 @@ if grep -q "\[operasional\]" /etc/samba/smb.conf; then
   # Perbarui path [operasional] agar menjadi /samba/operasional/%U jika belum
   sed -i 's|path = /samba/operasional$|path = /samba/operasional/%U|g' /etc/samba/smb.conf 2>/dev/null || true
   sed -i 's|valid users = laboran, admin|valid users = %U|g' /etc/samba/smb.conf 2>/dev/null || true
-  # Perketat mode permissions dari 0777 menjadi 0770 (akses khusus user & group web/operasional)
-  sed -i 's|create mask = 0777|create mask = 0770|g' /etc/samba/smb.conf 2>/dev/null || true
-  sed -i 's|directory mask = 0777|directory mask = 0770|g' /etc/samba/smb.conf 2>/dev/null || true
-  sed -i 's|force create mode = 0777|force create mode = 0770|g' /etc/samba/smb.conf 2>/dev/null || true
-  sed -i 's|force directory mode = 0777|force directory mode = 0770|g' /etc/samba/smb.conf 2>/dev/null || true
+  # Pastikan permission 0777 dan group www agar sinkron 100% dengan Web File Manager
+  sed -i 's|create mask = 0770|create mask = 0777|g' /etc/samba/smb.conf 2>/dev/null || true
+  sed -i 's|directory mask = 0770|directory mask = 0777|g' /etc/samba/smb.conf 2>/dev/null || true
+  sed -i 's|force create mode = 0770|force create mode = 0777|g' /etc/samba/smb.conf 2>/dev/null || true
+  sed -i 's|force directory mode = 0770|force directory mode = 0777|g' /etc/samba/smb.conf 2>/dev/null || true
+  if ! grep -q "force group = www" /etc/samba/smb.conf; then
+    sed -i '/\[operasional\]/a \    force group = www' /etc/samba/smb.conf 2>/dev/null || true
+    sed -i '/\[mahasiswa\]/a \    force group = www' /etc/samba/smb.conf 2>/dev/null || true
+  fi
 else
   echo "   -> Menambahkan blok [operasional] dinamis ke /etc/samba/smb.conf..."
   cat << 'EOF' >> /etc/samba/smb.conf
@@ -133,10 +150,32 @@ else
     read only = no
     writable = yes
     valid users = %U
-    create mask = 0770
-    directory mask = 0770
-    force create mode = 0770
-    force directory mode = 0770
+    force user = %U
+    force group = www
+    create mask = 0777
+    directory mask = 0777
+    force create mode = 0777
+    force directory mode = 0777
+EOF
+fi
+
+# Tambahkan share master operasional khusus Administrator jika belum ada
+if ! grep -q "\[admin_operasional\]" /etc/samba/smb.conf; then
+  cat << 'EOF' >> /etc/samba/smb.conf
+
+# Share Master Operasional (Khusus Administrator)
+[admin_operasional]
+    comment = Master Direktori Operasional Lab RMIK (Administrator)
+    path = /samba/operasional
+    browseable = yes
+    read only = no
+    writable = yes
+    valid users = admin
+    force group = www
+    create mask = 0777
+    directory mask = 0777
+    force create mode = 0777
+    force directory mode = 0777
 EOF
 fi
 
@@ -147,10 +186,45 @@ if grep -q "\[mahasiswa\]" /etc/samba/smb.conf; then
   else
     sed -i '/\[mahasiswa\]/a \    invalid users = laboran, dosen, admin' /etc/samba/smb.conf 2>/dev/null || true
   fi
+  sed -i 's|create mask = 0770|create mask = 0777|g' /etc/samba/smb.conf 2>/dev/null || true
+  sed -i 's|directory mask = 0770|directory mask = 0777|g' /etc/samba/smb.conf 2>/dev/null || true
+  sed -i 's|force create mode = 0770|force create mode = 0777|g' /etc/samba/smb.conf 2>/dev/null || true
+  sed -i 's|force directory mode = 0770|force directory mode = 0777|g' /etc/samba/smb.conf 2>/dev/null || true
 fi
 
 # Restart daemon Samba
 systemctl restart smb nmb 2>/dev/null || true
+
+# Optimasi Limit Upload Nginx & PHP di aaPanel (Mendukung upload video hingga 2GB)
+echo "⚡ Mengoptimasi batas ukuran upload PHP & Nginx (hingga 2 GB)..."
+for PHP_INI in /www/server/php/*/etc/php.ini /etc/php.ini /etc/php/*/fpm/php.ini; do
+  if [ -f "$PHP_INI" ]; then
+    sed -i 's/^upload_max_filesize.*/upload_max_filesize = 2048M/' "$PHP_INI" 2>/dev/null || true
+    sed -i 's/^post_max_size.*/post_max_size = 2048M/' "$PHP_INI" 2>/dev/null || true
+    sed -i 's/^max_execution_time.*/max_execution_time = 600/' "$PHP_INI" 2>/dev/null || true
+    sed -i 's/^max_input_time.*/max_input_time = 600/' "$PHP_INI" 2>/dev/null || true
+    sed -i 's/^memory_limit.*/memory_limit = 512M/' "$PHP_INI" 2>/dev/null || true
+  fi
+done
+
+# Restart layanan PHP-FPM jika ada
+for PHP_SVC in /etc/init.d/php-fpm* /www/server/php/*/etc/init.d/php-fpm; do
+  if [ -x "$PHP_SVC" ]; then
+    "$PHP_SVC" reload >/dev/null 2>&1 || true
+  fi
+done
+
+# Pastikan Nginx mengizinkan upload besar
+for NGINX_CONF in /www/server/nginx/conf/nginx.conf /etc/nginx/nginx.conf; do
+  if [ -f "$NGINX_CONF" ]; then
+    if grep -q "client_max_body_size" "$NGINX_CONF"; then
+      sed -i 's/client_max_body_size.*/client_max_body_size 2048M;/' "$NGINX_CONF" 2>/dev/null || true
+    else
+      sed -i '/http {/a \    client_max_body_size 2048M;' "$NGINX_CONF" 2>/dev/null || true
+    fi
+  fi
+done
+systemctl reload nginx 2>/dev/null || /etc/init.d/nginx reload 2>/dev/null || true
 
 # 5. Atur Hak Akses Web Server & Clear Cache Laravel
 echo "🧹 [5/5] Membersihkan cache aplikasi & mengatur izin file..."

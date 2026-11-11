@@ -126,18 +126,18 @@ while IFS='|' read -r USERNAME ROLE; do
   (printf "%s\n%s\n" "$SAMBA_PASS" "$SAMBA_PASS") | smbpasswd -s -a "$USERNAME" 2>/dev/null || true
   smbpasswd -e "$USERNAME" >/dev/null 2>&1 || true
 
-  # Buat folder
+  # Buat folder & atur izin penuh dua arah (Web & Samba)
   mkdir -p "$TARGET_DIR"
-  chown -R "${USERNAME}:${USERNAME}" "$TARGET_DIR" 2>/dev/null || true
-  chmod -R 750 "$TARGET_DIR"
+  chown -R "${USERNAME}:www" "$TARGET_DIR" 2>/dev/null || chown -R "${USERNAME}:${USERNAME}" "$TARGET_DIR" 2>/dev/null || true
+  chmod -R 777 "$TARGET_DIR"
+  usermod -a -G www "$USERNAME" 2>/dev/null || true
+  usermod -a -G "$USERNAME" www 2>/dev/null || true
 
   # ACL
   if command -v setfacl >/dev/null 2>&1; then
-    setfacl -R -m u:www:rwx "$TARGET_DIR" 2>/dev/null || true
-    setfacl -R -d -m u:www:rwx "$TARGET_DIR" 2>/dev/null || true
-    if id "apache" >/dev/null 2>&1; then
-      setfacl -R -m u:apache:rwx "$TARGET_DIR" 2>/dev/null || true
-    fi
+    setfacl -R -m u:www:rwx -m d:u:www:rwx "$TARGET_DIR" 2>/dev/null || true
+    setfacl -R -m g:www:rwx -m d:g:www:rwx "$TARGET_DIR" 2>/dev/null || true
+    setfacl -R -m u:"${USERNAME}":rwx -m d:u:"${USERNAME}":rwx "$TARGET_DIR" 2>/dev/null || true
   fi
 
   # SELinux

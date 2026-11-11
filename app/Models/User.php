@@ -54,7 +54,7 @@ class User extends Authenticatable
 
     public function isLaboran(): bool
     {
-        return $this->role === 'laboran' || ($this->role !== 'dosen' && strtolower($this->nim) === 'laboran');
+        return $this->role === 'laboran' || ($this->role !== 'dosen' && (strtolower($this->nim) === 'laboran' || str_starts_with($this->nim, '0686.')));
     }
 
     public function isDosen(): bool
@@ -64,12 +64,41 @@ class User extends Authenticatable
 
     public function isMahasiswa(): bool
     {
-        return $this->role === 'mahasiswa';
+        return !$this->isAdmin() && !$this->isLaboran() && !$this->isDosen();
     }
 
     public function isUnlimitedQuota(): bool
     {
         return $this->isAdmin() || $this->quota_limit === 0;
+    }
+
+    /**
+     * Kuota standar berdasarkan role jika belum disetel di database
+     * Admin     -> Unlimited (0)
+     * Laboran   -> 10 GB
+     * Dosen     -> 5 GB
+     * Mahasiswa -> 1 GB
+     */
+    public function getDefaultQuotaLimit(): int
+    {
+        if ($this->isAdmin()) {
+            return 0;
+        }
+        if ($this->isLaboran()) {
+            return 10737418240; // 10 GB
+        }
+        if ($this->isDosen()) {
+            return 5368709120; // 5 GB
+        }
+        return 1073741824; // 1 GB Mahasiswa
+    }
+
+    public function getEffectiveQuotaLimit(): int
+    {
+        if ($this->isUnlimitedQuota()) {
+            return 0;
+        }
+        return $this->quota_limit > 0 ? $this->quota_limit : $this->getDefaultQuotaLimit();
     }
 
     /**
@@ -81,15 +110,8 @@ class User extends Authenticatable
             return 0.0;
         }
 
-        $defaultLimit = 1073741824; // Default 1 GB Mahasiswa
-        if ($this->isLaboran()) {
-            $defaultLimit = 10737418240; // 10 GB Laboran
-        } elseif ($this->isDosen()) {
-            $defaultLimit = 5368709120; // 5 GB Dosen
-        }
-
-        $limit = $this->quota_limit > 0 ? $this->quota_limit : $defaultLimit;
-        return (float) min(100, round(($this->quota_used / $limit) * 100, 1));
+        $limit = $this->getEffectiveQuotaLimit();
+        return (float) min(100, round(($this->quota_used / max(1, $limit)) * 100, 1));
     }
 
     public function getQuotaLimitFormattedAttribute(): string
@@ -97,17 +119,7 @@ class User extends Authenticatable
         if ($this->isUnlimitedQuota()) {
             return 'Unlimited';
         }
-        $limit = $this->quota_limit;
-        if (!$limit || $limit <= 0) {
-            if ($this->isLaboran()) {
-                $limit = 10737418240; // 10 GB
-            } elseif ($this->isDosen()) {
-                $limit = 5368709120; // 5 GB
-            } else {
-                $limit = 1073741824; // 1 GB
-            }
-        }
-        return $this->formatBytes($limit);
+        return $this->formatBytes($this->getEffectiveQuotaLimit());
     }
 
     public function getQuotaUsedFormattedAttribute(): string

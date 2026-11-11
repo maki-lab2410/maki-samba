@@ -101,27 +101,19 @@ if [ ! -d "$TARGET_DIR" ]; then
   mkdir -p "$TARGET_DIR"
 fi
 
-# Set izin kepemilikan dan permission direktori yang aman (750)
-chown -R "$NIM":"$NIM" "$TARGET_DIR" 2>/dev/null || true
-chmod -R 750 "$TARGET_DIR"
+# Set izin kepemilikan dan permission direktori dua arah (Web & Samba)
+chown -R "$NIM":"$WEB_USER" "$TARGET_DIR" 2>/dev/null || chown -R "$NIM":"$NIM" "$TARGET_DIR" 2>/dev/null || true
+chmod -R 777 "$TARGET_DIR"
+
+# Tambahkan user ke group web server dan sebaliknya agar saling sinkron
+usermod -a -G "$WEB_USER" "$NIM" 2>/dev/null || true
+usermod -a -G "$NIM" "$WEB_USER" 2>/dev/null || true
 
 # 5. INTEGRASI DENGAN WEB FILE MANAGER (aaPanel / Apache via POSIX ACL)
 if command -v setfacl &> /dev/null; then
-  setfacl -R -m u:"$WEB_USER":rwx "$TARGET_DIR" 2>/dev/null || true
-  setfacl -R -d -m u:"$WEB_USER":rwx "$TARGET_DIR" 2>/dev/null || true
-  
-  if id "apache" &>/dev/null; then
-    setfacl -R -m u:apache:rwx "$TARGET_DIR" 2>/dev/null || true
-    setfacl -R -d -m u:apache:rwx "$TARGET_DIR" 2>/dev/null || true
-  fi
-
-  if [ "$TARGET_ROLE" = "laboran" ] || [ "$TARGET_ROLE" = "dosen" ]; then
-    setfacl -R -m u:"$NIM":rwx "$TARGET_DIR" 2>/dev/null || true
-    setfacl -R -d -m u:"$NIM":rwx "$TARGET_DIR" 2>/dev/null || true
-  fi
-else
-  usermod -a -G "$NIM" "$WEB_USER" 2>/dev/null || true
-fi
+  setfacl -R -m u:"$WEB_USER":rwx -m d:u:"$WEB_USER":rwx "$TARGET_DIR" 2>/dev/null || true
+  setfacl -R -m g:"$WEB_USER":rwx -m d:g:"$WEB_USER":rwx "$TARGET_DIR" 2>/dev/null || true
+  setfacl -R -m u:"$NIM":rwx -m d:u:"$NIM":rwx "$TARGET_DIR" 2>/dev/null || true
 
 # 6. Konfigurasi Keamanan SELinux (AlmaLinux 10)
 if command -v getenforce &> /dev/null && [ "$(getenforce)" != "Disabled" ]; then

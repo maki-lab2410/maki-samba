@@ -30,6 +30,8 @@
     writable = yes
     valid users = %U
     invalid users = laboran, dosen, admin
+    force user = %U
+    force group = www
     create mask = 0777
     directory mask = 0777
     force create mode = 0777
@@ -49,6 +51,26 @@
     read only = no
     writable = yes
     valid users = %U
+    force user = %U
+    force group = www
+    create mask = 0777
+    directory mask = 0777
+    force create mode = 0777
+    force directory mode = 0777
+
+# ------------------------------------------------------------------------------
+# 3. SHARE MASTER OPERASIONAL LAB (Khusus Administrator)
+# Windows UNC: \\IP_SERVER\admin_operasional
+# Administrator dapat melihat dan mengelola seluruh direktori operasional
+# ------------------------------------------------------------------------------
+[admin_operasional]
+    comment = Master Direktori Operasional Lab RMIK (Khusus Administrator)
+    path = /samba/operasional
+    browseable = yes
+    read only = no
+    writable = yes
+    valid users = admin
+    force group = www
     create mask = 0777
     directory mask = 0777
     force create mode = 0777

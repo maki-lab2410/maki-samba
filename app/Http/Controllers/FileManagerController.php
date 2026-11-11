@@ -90,14 +90,7 @@ class FileManagerController extends Controller
                 $user->update(['quota_limit' => 0]);
             }
 
-            $defaultQuota = 1073741824;
-            if ($role === 'laboran') {
-                $defaultQuota = 10737418240;
-            } elseif ($role === 'dosen') {
-                $defaultQuota = 5368709120;
-            }
-
-            $quotaLimit = $user->quota_limit ?: $defaultQuota;
+            $quotaLimit = $user->getEffectiveQuotaLimit();
             // Update database jika nilainya berbeda
             if ($user->quota_used !== $storageUsed) {
                 $user->update(['quota_used' => $storageUsed]);
@@ -192,8 +185,8 @@ class FileManagerController extends Controller
 
         // Cek kuota sebelum upload (Admin memiliki kuota Unlimited)
         $user = auth()->user();
-        $isAdmin = $user && ($user->isAdmin() || $user->role === 'admin' || $user->quota_limit === 0);
-        $quotaLimit = $user ? ($user->quota_limit ?: 1073741824) : 1073741824;
+        $isAdmin = $user && ($user->isAdmin() || $user->isUnlimitedQuota());
+        $quotaLimit = $user ? $user->getEffectiveQuotaLimit() : 1073741824;
         $currentUsed = $storage->getTotalStorageUsed();
 
         $totalUploadSize = 0;
