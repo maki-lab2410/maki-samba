@@ -349,22 +349,69 @@ class StorageService
     }
 
     /**
-     * Hitung total byte penggunaan penyimpanan di direktori fisik user
+     * Hitung total byte penggunaan penyimpanan di direktori fisik user.
+     * Strategi:
+     *   1. `du -sb` (paling akurat, menghitung semua file termasuk yang dibuat Samba)
+     *   2. Symfony Finder via File::allFiles() (bypass Laravel disk cache)
+     *   3. Laravel disk()->allFiles() (terakhir, bisa miss karena permission)
      */
     public function getTotalStorageUsed(): int
     {
-        $totalBytes = 0;
-        if (File::isDirectory($this->userRoot)) {
-            try {
-                $allFiles = $this->disk()->allFiles();
-                foreach ($allFiles as $file) {
-                    $totalBytes += (int) $this->disk()->size($file);
-                }
-            } catch (\Throwable $e) {
-                // Fallback jika terjadi error
-            }
+        if (!File::isDirectory($this->userRoot)) {
+            return 0;
         }
-        return $totalBytes;
+
+        // ── Strategy 1: `du` command (paling reliable di Linux server) ──
+        try {
+            $escapedPath = escapeshellarg($this->userRoot);
+            // du -sb = total bytes; du -sk = total kilobytes (macOS fallback)
+            $output = @shell_exec("du -sb {$escapedPath} 2>/dev/null");
+            if ($output) {
+                $parts = preg_split('/\s+/', trim($output));
+                $bytes = (int) ($parts[0] ?? 0);
+                if ($bytes > 0) {
+                    return $bytes;
+                }
+            }
+            // macOS: du -sk (kilobytes)
+            $output = @shell_exec("du -sk {$escapedPath} 2>/dev/null");
+            if ($output) {
+                $parts = preg_split('/\s+/', trim($output));
+                $kb = (int) ($parts[0] ?? 0);
+                if ($kb > 0) {
+                    return $kb * 1024;
+                }
+            }
+        } catch (\Throwable $e) {
+            // Lanjut ke strategy berikutnya
+        }
+
+        // ── Strategy 2: Symfony Finder (langsung ke filesystem, tanpa Laravel disk) ──
+        try {
+            $totalBytes = 0;
+            $allFiles = File::allFiles($this->userRoot);
+            foreach ($allFiles as $file) {
+                $totalBytes += (int) $file->getSize();
+            }
+            if ($totalBytes > 0) {
+                return $totalBytes;
+            }
+        } catch (\Throwable $e) {
+            // Lanjut ke strategy berikutnya
+        }
+
+        // ── Strategy 3: Laravel disk (fallback terakhir) ──
+        try {
+            $totalBytes = 0;
+            $allFiles = $this->disk()->allFiles();
+            foreach ($allFiles as $file) {
+                $totalBytes += (int) $this->disk()->size($file);
+            }
+            return $totalBytes;
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("StorageService: Gagal menghitung storage untuk {$this->userRoot}: " . $e->getMessage());
+            return 0;
+        }
     }
 
     /**
