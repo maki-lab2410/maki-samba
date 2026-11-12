@@ -375,6 +375,19 @@
         </div>
         @endif
 
+        @if($errors->any())
+        <div class="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-3.5 flex items-start gap-3 shadow-xs mb-3">
+            <span class="text-rose-600 text-lg">⚠️</span>
+            <div class="text-xs font-semibold flex-1">
+                <ul class="list-disc list-inside space-y-1">
+                    @foreach($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        </div>
+        @endif
+
         @if(session('warning'))
         <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-2xl p-3.5 flex items-center gap-3 shadow-xs mb-3">
             <span class="text-amber-600 text-lg">💡</span>

@@ -408,43 +408,55 @@ class DosenMahasiswaController extends Controller
     {
         $this->authorizeStaff();
 
+        if (function_exists('set_time_limit')) {
+            @set_time_limit(180);
+        }
+
+        \Illuminate\Support\Facades\Log::info('bulkCreateFolder initiated', $request->except(['_token']));
+
         $request->validate([
-            'folder_name'     => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9_\-\s.\/]+$/'],
-            'target_type'     => ['required', 'string', 'in:selected,filter,class,all'],
+            'folder_name'     => ['required', 'string', 'max:150'],
             'selected_nims'   => ['nullable', 'array'],
             'selected_nims.*' => ['string'],
             'target_semester' => ['nullable'],
             'target_kelas'    => ['nullable', 'string'],
         ], [
             'folder_name.required' => 'Nama folder wajib diisi.',
-            'folder_name.regex'    => 'Nama folder hanya boleh mengandung huruf, angka, spasi, titik, strip (-), underscore (_), dan slash (/).',
+            'folder_name.max'      => 'Nama folder maksimal 150 karakter.',
         ]);
 
-        // Sanitasi nama folder untuk mencegah directory traversal (../../)
-        $rawFolder = trim($request->input('folder_name'));
-        $parts = array_filter(explode('/', str_replace('\\', '/', $rawFolder)), function ($p) {
+        // Sanitasi nama folder: buang karakter terlarang filesystem & cegah directory traversal
+        $rawFolder = trim((string) $request->input('folder_name'));
+        $rawFolder = str_replace('\\', '/', $rawFolder);
+        $rawFolder = preg_replace('/[\x00-\x1F\x7F*?"<>|:]/', '', $rawFolder);
+
+        $parts = array_filter(explode('/', $rawFolder), function ($p) {
             $p = trim($p);
             return $p !== '' && $p !== '.' && $p !== '..';
         });
         $cleanFolderName = implode('/', $parts);
 
         if (empty($cleanFolderName)) {
-            return redirect()->back()->with('error', 'Nama folder tidak valid.');
+            return redirect()->back()->with('error', 'Nama folder tidak valid atau kosong.');
         }
 
-        $targetType = $request->input('target_type', 'filter');
+        $targetType = (string) $request->input('target_type', 'filter');
+        if (!in_array($targetType, ['selected', 'filter', 'class', 'all'], true)) {
+            $targetType = 'filter';
+        }
+
         $query = User::where('role', 'mahasiswa');
         $redirectParams = [];
 
         if ($targetType === 'selected') {
-            $nims = $request->input('selected_nims', []);
+            $nims = array_filter((array) $request->input('selected_nims', []));
             if (empty($nims)) {
                 return redirect()->back()->with('error', 'Tidak ada mahasiswa yang dipilih di tabel. Silakan centang kotak pada baris mahasiswa terlebih dahulu.');
             }
             $query->whereIn('nim', $nims);
         } elseif ($targetType === 'class') {
             $sem = $request->input('target_semester');
-            $kls = $request->input('target_kelas');
+            $kls = trim((string) $request->input('target_kelas', ''));
             if (!empty($sem) && $sem !== 'all') {
                 $query->where('semester', (int) $sem);
                 $redirectParams['semester'] = $sem;
@@ -455,7 +467,7 @@ class DosenMahasiswaController extends Controller
             }
         } elseif ($targetType === 'filter') {
             $sem = $request->input('current_semester');
-            $kls = $request->input('current_kelas');
+            $kls = trim((string) $request->input('current_kelas', ''));
             $q   = trim((string) $request->input('current_q', ''));
             if (!empty($sem) && $sem !== 'all') {
                 $query->where('semester', (int) $sem);
@@ -487,8 +499,12 @@ class DosenMahasiswaController extends Controller
         $errorCount = 0;
 
         foreach ($students as $student) {
+            if (empty($student->nim)) {
+                continue;
+            }
+
             $studentRoot = rtrim($sambaBasePath, '/') . '/' . $student->nim;
-            
+
             // Buat folder user jika belum ada
             if (!File::isDirectory($studentRoot)) {
                 @File::makeDirectory($studentRoot, 0777, true, true);
@@ -514,6 +530,8 @@ class DosenMahasiswaController extends Controller
                 }
             }
         }
+
+        \Illuminate\Support\Facades\Log::info("bulkCreateFolder completed for '{$cleanFolderName}': created={$createdCount}, existing={$existingCount}, errors={$errorCount}");
 
         // Otomatis arahkan view ke folder yang baru dibuat agar langsung terlihat di tabel & filter
         $redirectParams['folder'] = $cleanFolderName;

@@ -10,6 +10,7 @@
     selectedNims: [],
     showBulkFolderModal: false,
     bulkTargetType: 'filter',
+    isSubmittingBulk: false,
     get isAllSelected() {
         return this.allNims.length > 0 && this.selectedNims.length === this.allNims.length;
     },
@@ -453,8 +454,10 @@
                         </div>
 
                         {{-- Form --}}
-                        <form action="{{ route('dosen.mahasiswa.bulk_folder') }}" method="POST" class="space-y-4">
+                        <form action="{{ route('dosen.mahasiswa.bulk_folder') }}" method="POST"
+                              x-on:submit="isSubmittingBulk = true" class="space-y-4">
                             @csrf
+                            <input type="hidden" name="target_type" :value="bulkTargetType">
                             <input type="hidden" name="current_semester" value="{{ $currentSemester }}">
                             <input type="hidden" name="current_kelas" value="{{ $currentKelas }}">
                             <input type="hidden" name="current_q" value="{{ $search }}">
@@ -463,6 +466,20 @@
                             <template x-for="nim in selectedNims" :key="'bulk-' + nim">
                                 <input type="hidden" name="selected_nims[]" :value="nim">
                             </template>
+
+                            @if($errors->any())
+                            <div class="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-xs font-semibold">
+                                <div class="flex items-center gap-1.5 font-bold mb-1">
+                                    <span>⚠️</span>
+                                    <span>Pemberitahuan:</span>
+                                </div>
+                                <ul class="list-disc list-inside space-y-0.5 text-[11px]">
+                                    @foreach($errors->all() as $err)
+                                        <li>{{ $err }}</li>
+                                    @endforeach
+                                </ul>
+                            </div>
+                            @endif
 
                             {{-- 1. Input Nama Folder --}}
                             <div>
@@ -565,16 +582,20 @@
 
                             {{-- Action Buttons --}}
                             <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                                <button x-on:click="showBulkFolderModal = false" type="button"
-                                        class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
+                                <button x-on:click="showBulkFolderModal = false" type="button" :disabled="isSubmittingBulk"
+                                        class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer disabled:opacity-50">
                                     Batal
                                 </button>
-                                <button type="submit"
-                                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/25 transition cursor-pointer">
-                                    <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <button type="submit" :disabled="isSubmittingBulk"
+                                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/25 transition cursor-pointer">
+                                    <svg x-show="!isSubmittingBulk" class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
                                     </svg>
-                                    <span>Buat Folder Sekarang</span>
+                                    <svg x-show="isSubmittingBulk" class="w-4 h-4 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                    </svg>
+                                    <span x-text="isSubmittingBulk ? 'Membuat Folder...' : 'Buat Folder Sekarang'">Buat Folder Sekarang</span>
                                 </button>
                             </div>
                         </form>
