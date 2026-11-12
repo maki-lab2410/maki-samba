@@ -473,7 +473,6 @@ class DosenMahasiswaController extends Controller
             if (!File::isDirectory($studentRoot)) {
                 @File::makeDirectory($studentRoot, 0777, true, true);
                 @chmod($studentRoot, 0777);
-                @chgrp($studentRoot, 'www');
             }
 
             $targetFolder = $studentRoot . '/' . $cleanFolderName;
@@ -481,12 +480,10 @@ class DosenMahasiswaController extends Controller
             if (File::isDirectory($targetFolder)) {
                 $existingCount++;
                 @chmod($targetFolder, 0777);
-                @chgrp($targetFolder, 'www');
             } else {
                 try {
                     File::makeDirectory($targetFolder, 0777, true, true);
                     @chmod($targetFolder, 0777);
-                    @chgrp($targetFolder, 'www');
                     $createdCount++;
                 } catch (\Throwable $e) {
                     $errorCount++;

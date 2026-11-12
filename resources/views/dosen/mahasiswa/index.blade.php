@@ -404,161 +404,179 @@
     </div>
 
     {{-- ═══ 5. MODAL BUAT FOLDER MASSAL DI AKUN MAHASISWA ═══ --}}
-    <div x-cloak x-show="showBulkFolderModal"
-         x-transition:enter="transition ease-out duration-200"
-         x-transition:enter-start="opacity-0"
-         x-transition:enter-end="opacity-100"
-         x-transition:leave="transition ease-in duration-150"
-         x-transition:leave-start="opacity-100"
-         x-transition:leave-end="opacity-0"
-         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-        
-        <div x-on:click.outside="showBulkFolderModal = false"
-             class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 relative">
-            
-            {{-- Modal Header --}}
-            <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center text-xl shrink-0 shadow-xs">
-                        📁
-                    </div>
-                    <div>
-                        <h3 class="font-extrabold text-slate-800 text-base leading-tight">Buat Folder Massal Mahasiswa</h3>
-                        <p class="text-xs text-slate-500 mt-0.5">Otomatisasi pembuatan folder praktikum/tugas di akun mahasiswa.</p>
-                    </div>
-                </div>
-                <button x-on:click="showBulkFolderModal = false" type="button"
-                        class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                    </svg>
-                </button>
-            </div>
+    <template x-teleport="body">
+        <div x-cloak x-show="showBulkFolderModal" class="relative z-50" role="dialog" aria-modal="true">
+            {{-- Backdrop Overlay (100% Fullscreen Viewport) --}}
+            <div x-show="showBulkFolderModal"
+                 x-transition:enter="ease-out duration-200"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="ease-in duration-150"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
+                 aria-hidden="true"></div>
 
-            {{-- Form --}}
-            <form action="{{ route('dosen.mahasiswa.bulk_folder') }}" method="POST" class="space-y-4">
-                @csrf
-                <input type="hidden" name="current_semester" value="{{ $currentSemester }}">
-                <input type="hidden" name="current_kelas" value="{{ $currentKelas }}">
-                <input type="hidden" name="current_q" value="{{ $search }}">
-
-                {{-- Hidden input selected nims if any --}}
-                <template x-for="nim in selectedNims" :key="'bulk-' + nim">
-                    <input type="hidden" name="selected_nims[]" :value="nim">
-                </template>
-
-                {{-- 1. Input Nama Folder --}}
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
-                        <span>Nama Folder Praktikum / Tugas <span class="text-rose-500">*</span></span>
-                        <span class="text-[10.5px] font-normal text-slate-400">Subfolder: Matkul/Tugas1</span>
-                    </label>
-                    <input type="text" name="folder_name" required autofocus
-                           placeholder="Contoh: Praktikum RME - Pertemuan 1"
-                           class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition">
-                    <p class="text-[11px] text-slate-400 mt-1">
-                        Folder otomatis tersimpan di disk <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded text-[10.5px]">/samba/mahasiswa/{NIM}/[Nama Folder]</code>
-                    </p>
-                </div>
-
-                {{-- 2. Pilihan Target Mahasiswa --}}
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 mb-2">Target Penerima Folder:</label>
-                    
-                    <div class="space-y-2">
-                        {{-- Opsi 1: Mahasiswa yang dicentang di tabel --}}
-                        <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
-                               :class="bulkTargetType === 'selected' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
-                            <input type="radio" name="target_type" value="selected" x-model="bulkTargetType"
-                                   :disabled="selectedNims.length === 0"
-                                   class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
-                            <div class="text-xs">
-                                <span class="font-bold text-slate-800">Hanya Mahasiswa yang Dicentang di Tabel</span>
-                                <p class="text-[11px] text-slate-500 mt-0.5">
-                                    <span x-text="selectedNims.length" class="font-bold text-indigo-600"></span> mahasiswa terpilih saat ini.
-                                    <span x-show="selectedNims.length === 0" class="text-rose-500 italic block">(Centang kotak pada baris tabel mahasiswa terlebih dahulu)</span>
-                                </p>
-                            </div>
-                        </label>
-
-                        {{-- Opsi 2: Sesuai filter halaman saat ini --}}
-                        <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
-                               :class="bulkTargetType === 'filter' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
-                            <input type="radio" name="target_type" value="filter" x-model="bulkTargetType"
-                                   class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
-                            <div class="text-xs">
-                                <span class="font-bold text-slate-800">Semua Mahasiswa Sesuai Filter Saat Ini</span>
-                                <p class="text-[11px] text-slate-500 mt-0.5">
-                                    Target: <strong class="text-indigo-700">{{ $totalStudents }} Mahasiswa</strong>
-                                    @if($currentSemester !== 'all') &bull; Semester {{ $currentSemester }} @endif
-                                    @if($currentKelas !== 'all') &bull; Kelas {{ $currentKelas }} @endif
-                                </p>
-                            </div>
-                        </label>
-
-                        {{-- Opsi 3: Pilih Spesifik Semester & Kelas --}}
-                        <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
-                               :class="bulkTargetType === 'class' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
-                            <input type="radio" name="target_type" value="class" x-model="bulkTargetType"
-                                   class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
-                            <div class="text-xs w-full">
-                                <span class="font-bold text-slate-800">Pilih Berdasarkan Semester &amp; Kelas</span>
-                                
-                                <div x-show="bulkTargetType === 'class'" class="grid grid-cols-2 gap-2 mt-2" x-transition>
-                                    <div>
-                                        <label class="block text-[10px] text-slate-400 font-bold mb-1">Semester</label>
-                                        <select name="target_semester"
-                                                class="w-full text-xs font-semibold py-1.5 px-2 bg-white border border-slate-200 rounded-lg">
-                                            <option value="all">Semua Semester</option>
-                                            @for($i = 1; $i <= 8; $i++)
-                                                <option value="{{ $i }}">Semester {{ $i }}</option>
-                                            @endfor
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label class="block text-[10px] text-slate-400 font-bold mb-1">Kelas</label>
-                                        <select name="target_kelas"
-                                                class="w-full text-xs font-semibold py-1.5 px-2 bg-white border border-slate-200 rounded-lg">
-                                            <option value="all">Semua Kelas</option>
-                                            @foreach($availableClasses as $kls)
-                                                <option value="{{ $kls }}">Kelas {{ $kls }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
+            {{-- Dialog Container (Fixed Fullscreen Scrollable) --}}
+            <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+                <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+                    {{-- Modal Card --}}
+                    <div x-show="showBulkFolderModal"
+                         x-on:click.outside="showBulkFolderModal = false"
+                         x-transition:enter="ease-out duration-200"
+                         x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                         x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
+                         x-transition:leave="ease-in duration-150"
+                         x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
+                         x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                         class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 relative text-left my-8">
+                        
+                        {{-- Modal Header --}}
+                        <div class="flex items-center justify-between pb-4 border-b border-slate-100 mb-5">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-2xl bg-indigo-50 border border-indigo-100 text-indigo-600 flex items-center justify-center text-xl shrink-0 shadow-xs">
+                                    📁
+                                </div>
+                                <div>
+                                    <h3 class="font-extrabold text-slate-800 text-base leading-tight">Buat Folder Massal Mahasiswa</h3>
+                                    <p class="text-xs text-slate-500 mt-0.5">Otomatisasi pembuatan folder praktikum/tugas di akun mahasiswa.</p>
                                 </div>
                             </div>
-                        </label>
+                            <button x-on:click="showBulkFolderModal = false" type="button"
+                                    class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition cursor-pointer">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
 
-                        {{-- Opsi 4: Seluruh Mahasiswa Terdaftar --}}
-                        <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
-                               :class="bulkTargetType === 'all' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
-                            <input type="radio" name="target_type" value="all" x-model="bulkTargetType"
-                                   class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
-                            <div class="text-xs">
-                                <span class="font-bold text-slate-800">Seluruh Mahasiswa Terdaftar di Sistem</span>
-                                <p class="text-[11px] text-slate-500 mt-0.5">Membuat folder ke seluruh akun mahasiswa tanpa kecuali.</p>
+                        {{-- Form --}}
+                        <form action="{{ route('dosen.mahasiswa.bulk_folder') }}" method="POST" class="space-y-4">
+                            @csrf
+                            <input type="hidden" name="current_semester" value="{{ $currentSemester }}">
+                            <input type="hidden" name="current_kelas" value="{{ $currentKelas }}">
+                            <input type="hidden" name="current_q" value="{{ $search }}">
+
+                            {{-- Hidden input selected nims if any --}}
+                            <template x-for="nim in selectedNims" :key="'bulk-' + nim">
+                                <input type="hidden" name="selected_nims[]" :value="nim">
+                            </template>
+
+                            {{-- 1. Input Nama Folder --}}
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
+                                    <span>Nama Folder Praktikum / Tugas <span class="text-rose-500">*</span></span>
+                                    <span class="text-[10.5px] font-normal text-slate-400">Subfolder: Matkul/Tugas1</span>
+                                </label>
+                                <input type="text" name="folder_name" required autofocus
+                                       placeholder="Contoh: Praktikum RME - Pertemuan 1"
+                                       class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition">
+                                <p class="text-[11px] text-slate-400 mt-1">
+                                    Folder otomatis tersimpan di disk <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded text-[10.5px]">/samba/mahasiswa/{NIM}/[Nama Folder]</code>
+                                </p>
                             </div>
-                        </label>
+
+                            {{-- 2. Pilihan Target Mahasiswa --}}
+                            <div>
+                                <label class="block text-xs font-bold text-slate-700 mb-2">Target Penerima Folder:</label>
+                                
+                                <div class="space-y-2">
+                                    {{-- Opsi 1: Mahasiswa yang dicentang di tabel --}}
+                                    <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
+                                           :class="bulkTargetType === 'selected' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
+                                        <input type="radio" name="target_type" value="selected" x-model="bulkTargetType"
+                                               :disabled="selectedNims.length === 0"
+                                               class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                        <div class="text-xs">
+                                            <span class="font-bold text-slate-800">Hanya Mahasiswa yang Dicentang di Tabel</span>
+                                            <p class="text-[11px] text-slate-500 mt-0.5">
+                                                <span x-text="selectedNims.length" class="font-bold text-indigo-600"></span> mahasiswa terpilih saat ini.
+                                                <span x-show="selectedNims.length === 0" class="text-rose-500 italic block">(Centang kotak pada baris tabel mahasiswa terlebih dahulu)</span>
+                                            </p>
+                                        </div>
+                                    </label>
+
+                                    {{-- Opsi 2: Sesuai filter halaman saat ini --}}
+                                    <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
+                                           :class="bulkTargetType === 'filter' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
+                                        <input type="radio" name="target_type" value="filter" x-model="bulkTargetType"
+                                               class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                        <div class="text-xs">
+                                            <span class="font-bold text-slate-800">Semua Mahasiswa Sesuai Filter Saat Ini</span>
+                                            <p class="text-[11px] text-slate-500 mt-0.5">
+                                                Target: <strong class="text-indigo-700">{{ $totalStudents }} Mahasiswa</strong>
+                                                @if($currentSemester !== 'all') &bull; Semester {{ $currentSemester }} @endif
+                                                @if($currentKelas !== 'all') &bull; Kelas {{ $currentKelas }} @endif
+                                            </p>
+                                        </div>
+                                    </label>
+
+                                    {{-- Opsi 3: Pilih Spesifik Semester & Kelas --}}
+                                    <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
+                                           :class="bulkTargetType === 'class' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
+                                        <input type="radio" name="target_type" value="class" x-model="bulkTargetType"
+                                               class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                        <div class="text-xs w-full">
+                                            <span class="font-bold text-slate-800">Pilih Berdasarkan Semester &amp; Kelas</span>
+                                            
+                                            <div x-show="bulkTargetType === 'class'" class="grid grid-cols-2 gap-2 mt-2" x-transition>
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400 font-bold mb-1">Semester</label>
+                                                    <select name="target_semester"
+                                                            class="w-full text-xs font-semibold py-1.5 px-2 bg-white border border-slate-200 rounded-lg">
+                                                        <option value="all">Semua Semester</option>
+                                                        @for($i = 1; $i <= 8; $i++)
+                                                            <option value="{{ $i }}">Semester {{ $i }}</option>
+                                                        @endfor
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] text-slate-400 font-bold mb-1">Kelas</label>
+                                                    <select name="target_kelas"
+                                                            class="w-full text-xs font-semibold py-1.5 px-2 bg-white border border-slate-200 rounded-lg">
+                                                        <option value="all">Semua Kelas</option>
+                                                        @foreach($availableClasses as $kls)
+                                                            <option value="{{ $kls }}">Kelas {{ $kls }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </label>
+
+                                    {{-- Opsi 4: Seluruh Mahasiswa Terdaftar --}}
+                                    <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
+                                           :class="bulkTargetType === 'all' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
+                                        <input type="radio" name="target_type" value="all" x-model="bulkTargetType"
+                                               class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
+                                        <div class="text-xs">
+                                            <span class="font-bold text-slate-800">Seluruh Mahasiswa Terdaftar di Sistem</span>
+                                            <p class="text-[11px] text-slate-500 mt-0.5">Membuat folder ke seluruh akun mahasiswa tanpa kecuali.</p>
+                                        </div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            {{-- Action Buttons --}}
+                            <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                                <button x-on:click="showBulkFolderModal = false" type="button"
+                                        class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition cursor-pointer">
+                                    Batal
+                                </button>
+                                <button type="submit"
+                                        class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/25 transition cursor-pointer">
+                                    <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                    </svg>
+                                    <span>Buat Folder Sekarang</span>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
-
-                {{-- Action Buttons --}}
-                <div class="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                    <button x-on:click="showBulkFolderModal = false" type="button"
-                            class="px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">
-                        Batal
-                    </button>
-                    <button type="submit"
-                            class="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md shadow-indigo-500/25 transition">
-                        <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                        </svg>
-                        <span>Buat Folder Sekarang</span>
-                    </button>
-                </div>
-            </form>
+            </div>
         </div>
-    </div>
+    </template>
 
 </div>
 @endsection
