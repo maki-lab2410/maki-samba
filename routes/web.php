@@ -58,6 +58,7 @@ Route::middleware('samba.auth')->group(function () {
 
     // ─── DIREKTORI & PEMERIKSAAN FILE MAHASISWA (DOSEN, LABORAN, ADMIN) ───────
     Route::get('/dosen/mahasiswa', [\App\Http\Controllers\DosenMahasiswaController::class, 'index'])->name('dosen.mahasiswa.index');
+    Route::post('/dosen/mahasiswa/bulk-folder', [\App\Http\Controllers\DosenMahasiswaController::class, 'bulkCreateFolder'])->name('dosen.mahasiswa.bulk_folder');
     Route::match(['get', 'post'], '/dosen/mahasiswa/download-zip', [\App\Http\Controllers\DosenMahasiswaController::class, 'downloadBatchZip'])->name('dosen.mahasiswa.download_zip');
     Route::get('/dosen/mahasiswa/{nim}', [\App\Http\Controllers\DosenMahasiswaController::class, 'show'])->name('dosen.mahasiswa.show');
     Route::get('/dosen/mahasiswa/{nim}/download-zip', [\App\Http\Controllers\DosenMahasiswaController::class, 'downloadStudentZip'])->name('dosen.mahasiswa.download_student_zip');

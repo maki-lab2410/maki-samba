@@ -385,4 +385,123 @@ class DosenMahasiswaController extends Controller
         $storage = new StorageService($student->nim, 'mahasiswa');
         return $storage->downloadFile($filePath);
     }
+
+    /**
+     * 7. Pembuatan Folder Praktikum / Tugas Secara Massal di Akun Mahasiswa
+     * Dapat dilakukan oleh Dosen, Laboran, atau Administrator
+     */
+    public function bulkCreateFolder(Request $request)
+    {
+        $this->authorizeStaff();
+
+        $request->validate([
+            'folder_name'     => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9_\-\s.\/]+$/'],
+            'target_type'     => ['required', 'string', 'in:selected,filter,class,all'],
+            'selected_nims'   => ['nullable', 'array'],
+            'selected_nims.*' => ['string'],
+            'target_semester' => ['nullable'],
+            'target_kelas'    => ['nullable', 'string'],
+        ], [
+            'folder_name.required' => 'Nama folder wajib diisi.',
+            'folder_name.regex'    => 'Nama folder hanya boleh mengandung huruf, angka, spasi, titik, strip (-), underscore (_), dan slash (/).',
+        ]);
+
+        // Sanitasi nama folder untuk mencegah directory traversal (../../)
+        $rawFolder = trim($request->input('folder_name'));
+        $parts = array_filter(explode('/', str_replace('\\', '/', $rawFolder)), function ($p) {
+            $p = trim($p);
+            return $p !== '' && $p !== '.' && $p !== '..';
+        });
+        $cleanFolderName = implode('/', $parts);
+
+        if (empty($cleanFolderName)) {
+            return redirect()->back()->with('error', 'Nama folder tidak valid.');
+        }
+
+        $targetType = $request->input('target_type');
+        $query = User::where('role', 'mahasiswa');
+
+        if ($targetType === 'selected') {
+            $nims = $request->input('selected_nims', []);
+            if (empty($nims)) {
+                return redirect()->back()->with('error', 'Tidak ada mahasiswa yang dipilih di tabel.');
+            }
+            $query->whereIn('nim', $nims);
+        } elseif ($targetType === 'class') {
+            $sem = $request->input('target_semester');
+            $kls = $request->input('target_kelas');
+            if (!empty($sem) && $sem !== 'all') {
+                $query->where('semester', (int) $sem);
+            }
+            if (!empty($kls) && $kls !== 'all') {
+                $query->where('kelas', $kls);
+            }
+        } elseif ($targetType === 'filter') {
+            $sem = $request->input('current_semester');
+            $kls = $request->input('current_kelas');
+            $q   = trim((string) $request->input('current_q', ''));
+            if (!empty($sem) && $sem !== 'all') {
+                $query->where('semester', (int) $sem);
+            }
+            if (!empty($kls) && $kls !== 'all') {
+                $query->where('kelas', $kls);
+            }
+            if (!empty($q)) {
+                $query->where(function ($sq) use ($q) {
+                    $sq->where('nim', 'like', "%{$q}%")
+                       ->orWhere('name', 'like', "%{$q}%");
+                });
+            }
+        }
+        // $targetType === 'all' -> all students without filters
+
+        $students = $query->get();
+        if ($students->isEmpty()) {
+            return redirect()->back()->with('error', 'Tidak ditemukan mahasiswa yang sesuai dengan target pilihan.');
+        }
+
+        $sambaBasePath = config('filesystems.disks.samba_base.root', env('SAMBA_BASE_PATH', '/samba/mahasiswa'));
+
+        $createdCount = 0;
+        $existingCount = 0;
+        $errorCount = 0;
+
+        foreach ($students as $student) {
+            $studentRoot = rtrim($sambaBasePath, '/') . '/' . $student->nim;
+            
+            // Buat folder user jika belum ada
+            if (!File::isDirectory($studentRoot)) {
+                @File::makeDirectory($studentRoot, 0777, true, true);
+                @chmod($studentRoot, 0777);
+                @chgrp($studentRoot, 'www');
+            }
+
+            $targetFolder = $studentRoot . '/' . $cleanFolderName;
+
+            if (File::isDirectory($targetFolder)) {
+                $existingCount++;
+                @chmod($targetFolder, 0777);
+                @chgrp($targetFolder, 'www');
+            } else {
+                try {
+                    File::makeDirectory($targetFolder, 0777, true, true);
+                    @chmod($targetFolder, 0777);
+                    @chgrp($targetFolder, 'www');
+                    $createdCount++;
+                } catch (\Throwable $e) {
+                    $errorCount++;
+                }
+            }
+        }
+
+        $message = "Sukses! Berhasil membuat folder \"{$cleanFolderName}\" pada {$createdCount} akun mahasiswa.";
+        if ($existingCount > 0) {
+            $message .= " ({$existingCount} mahasiswa sudah memiliki folder tersebut).";
+        }
+        if ($errorCount > 0) {
+            $message .= " ({$errorCount} gagal dibuat karena izin sistem).";
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
 }
