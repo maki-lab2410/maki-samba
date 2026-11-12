@@ -418,13 +418,14 @@ class DosenMahasiswaController extends Controller
             return redirect()->back()->with('error', 'Nama folder tidak valid.');
         }
 
-        $targetType = $request->input('target_type');
+        $targetType = $request->input('target_type', 'filter');
         $query = User::where('role', 'mahasiswa');
+        $redirectParams = [];
 
         if ($targetType === 'selected') {
             $nims = $request->input('selected_nims', []);
             if (empty($nims)) {
-                return redirect()->back()->with('error', 'Tidak ada mahasiswa yang dipilih di tabel.');
+                return redirect()->back()->with('error', 'Tidak ada mahasiswa yang dipilih di tabel. Silakan centang kotak pada baris mahasiswa terlebih dahulu.');
             }
             $query->whereIn('nim', $nims);
         } elseif ($targetType === 'class') {
@@ -432,9 +433,11 @@ class DosenMahasiswaController extends Controller
             $kls = $request->input('target_kelas');
             if (!empty($sem) && $sem !== 'all') {
                 $query->where('semester', (int) $sem);
+                $redirectParams['semester'] = $sem;
             }
             if (!empty($kls) && $kls !== 'all') {
                 $query->where('kelas', $kls);
+                $redirectParams['kelas'] = $kls;
             }
         } elseif ($targetType === 'filter') {
             $sem = $request->input('current_semester');
@@ -442,15 +445,18 @@ class DosenMahasiswaController extends Controller
             $q   = trim((string) $request->input('current_q', ''));
             if (!empty($sem) && $sem !== 'all') {
                 $query->where('semester', (int) $sem);
+                $redirectParams['semester'] = $sem;
             }
             if (!empty($kls) && $kls !== 'all') {
                 $query->where('kelas', $kls);
+                $redirectParams['kelas'] = $kls;
             }
             if (!empty($q)) {
                 $query->where(function ($sq) use ($q) {
                     $sq->where('nim', 'like', "%{$q}%")
                        ->orWhere('name', 'like', "%{$q}%");
                 });
+                $redirectParams['q'] = $q;
             }
         }
         // $targetType === 'all' -> all students without filters
@@ -482,23 +488,36 @@ class DosenMahasiswaController extends Controller
                 @chmod($targetFolder, 0777);
             } else {
                 try {
-                    File::makeDirectory($targetFolder, 0777, true, true);
-                    @chmod($targetFolder, 0777);
-                    $createdCount++;
+                    $created = @File::makeDirectory($targetFolder, 0777, true, true);
+                    if ($created || File::isDirectory($targetFolder)) {
+                        @chmod($targetFolder, 0777);
+                        $createdCount++;
+                    } else {
+                        $errorCount++;
+                    }
                 } catch (\Throwable $e) {
                     $errorCount++;
                 }
             }
         }
 
-        $message = "Sukses! Berhasil membuat folder \"{$cleanFolderName}\" pada {$createdCount} akun mahasiswa.";
-        if ($existingCount > 0) {
-            $message .= " ({$existingCount} mahasiswa sudah memiliki folder tersebut).";
-        }
-        if ($errorCount > 0) {
-            $message .= " ({$errorCount} gagal dibuat karena izin sistem).";
+        // Otomatis arahkan view ke folder yang baru dibuat agar langsung terlihat di tabel & filter
+        $redirectParams['folder'] = $cleanFolderName;
+
+        if ($createdCount > 0) {
+            $message = "Sukses! Berhasil membuat folder \"{$cleanFolderName}\" pada {$createdCount} akun mahasiswa.";
+            if ($existingCount > 0) {
+                $message .= " ({$existingCount} akun sudah memiliki folder ini sebelumnya).";
+            }
+            return redirect()->route('dosen.mahasiswa.index', $redirectParams)->with('success', $message);
         }
 
-        return redirect()->back()->with('success', $message);
+        if ($existingCount > 0) {
+            $message = "Info: Seluruh {$existingCount} akun mahasiswa yang ditargetkan sudah memiliki folder \"{$cleanFolderName}\".";
+            return redirect()->route('dosen.mahasiswa.index', $redirectParams)->with('warning', $message);
+        }
+
+        $message = "Gagal membuat folder \"{$cleanFolderName}\" pada akun mahasiswa. Periksa izin direktori di server.";
+        return redirect()->route('dosen.mahasiswa.index', $redirectParams)->with('error', $message);
     }
 }

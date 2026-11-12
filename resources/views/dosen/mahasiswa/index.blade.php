@@ -41,45 +41,44 @@
             </div>
         </div>
 
-        <div class="flex items-center gap-2.5 self-start md:self-auto flex-wrap">
-            <div class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 flex items-center gap-2">
-                <span>👥 Total Ditemukan:</span>
+        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 self-start md:self-auto">
+            {{-- Badge Total Mahasiswa --}}
+            <div class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 flex items-center gap-2 shrink-0">
+                <span>👥 Total:</span>
                 <span class="text-blue-600 font-extrabold text-sm">{{ $totalStudents }} Mahasiswa</span>
             </div>
 
-            {{-- Tombol Buat Folder Massal di Akun Mahasiswa --}}
-            <button x-on:click="showBulkFolderModal = true; bulkTargetType = (selectedNims.length > 0 ? 'selected' : 'filter')"
-                    type="button"
-                    class="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition cursor-pointer"
-                    title="Buat folder praktikum atau tugas secara massal di akun mahasiswa">
-                <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
-                </svg>
-                <span>+ Buat Folder Massal</span>
-            </button>
-
-            {{-- Tombol Cepat Unduh ZIP Semua Mahasiswa Sesuai Filter --}}
-            @if($totalStudents > 0)
-            <form action="{{ route('dosen.mahasiswa.download_zip') }}" method="POST" class="inline">
-                @csrf
-                <input type="hidden" name="folder" value="{{ $folderSearch }}">
-                <input type="hidden" name="semester" value="{{ $currentSemester }}">
-                <input type="hidden" name="kelas" value="{{ $currentKelas }}">
-                <input type="hidden" name="q" value="{{ $search }}">
-                <button type="submit"
-                        class="inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-xs transition"
-                        title="Unduh seluruh folder praktikum ini sebagai satu arsip ZIP">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            <div class="flex items-center gap-2 flex-wrap">
+                {{-- Tombol Buat Folder Massal di Akun Mahasiswa --}}
+                <button x-on:click="showBulkFolderModal = true; bulkTargetType = (selectedNims.length > 0 ? 'selected' : 'filter')"
+                        type="button"
+                        class="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition cursor-pointer shrink-0"
+                        title="Buat folder praktikum atau tugas secara massal di akun mahasiswa">
+                    <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
                     </svg>
-                    @if(!empty($folderSearch))
-                        <span>Unduh ZIP "{{ $folderSearch }}" ({{ $totalStudents }})</span>
-                    @else
-                        <span>Unduh ZIP ({{ $totalStudents }} Mahasiswa)</span>
-                    @endif
+                    <span>+ Buat Folder Massal</span>
                 </button>
-            </form>
-            @endif
+
+                {{-- Tombol Cepat Unduh ZIP Semua Mahasiswa Sesuai Filter --}}
+                @if($totalStudents > 0)
+                <form action="{{ route('dosen.mahasiswa.download_zip') }}" method="POST" class="inline">
+                    @csrf
+                    <input type="hidden" name="folder" value="{{ $folderSearch }}">
+                    <input type="hidden" name="semester" value="{{ $currentSemester }}">
+                    <input type="hidden" name="kelas" value="{{ $currentKelas }}">
+                    <input type="hidden" name="q" value="{{ $search }}">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-xs shadow-emerald-500/20 transition cursor-pointer shrink-0"
+                            title="{{ !empty($folderSearch) ? 'Unduh ZIP untuk folder ' . $folderSearch : 'Unduh seluruh berkas mahasiswa sesuai filter' }}">
+                        <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        <span>Unduh ZIP @if(!empty($folderSearch)) <span class="max-w-[130px] truncate inline-block font-extrabold align-bottom" title="{{ $folderSearch }}">"{{ $folderSearch }}"</span> @endif ({{ $totalStudents }})</span>
+                    </button>
+                </form>
+                @endif
+            </div>
         </div>
     </div>
 
@@ -217,7 +216,7 @@
                         </th>
                         <th class="py-3.5 px-4">Mahasiswa</th>
                         <th class="py-3.5 px-4 w-36">Semester & Kelas</th>
-                        <th class="py-3.5 px-4">Folder Praktikum / MK (Dibuat Mandiri)</th>
+                        <th class="py-3.5 px-4">Folder Praktikum / Tugas</th>
                         <th class="py-3.5 px-4 w-40">Penggunaan Kuota</th>
                         <th class="py-3.5 px-5 text-right w-36">Aksi Berkas</th>
                     </tr>
@@ -276,20 +275,23 @@
                             </div>
                         </td>
 
-                        {{-- Folder Mata Kuliah / Praktikum yang dibuat mahasiswa --}}
+                        {{-- Folder Mata Kuliah / Praktikum yang dibuat mahasiswa atau dosen --}}
                         <td class="py-3 px-4">
                             @if(count($folders) > 0)
-                                <div class="flex items-center gap-2 flex-wrap max-w-md">
-                                    @foreach(array_slice($folders, 0, 4) as $folderName)
-                                        <div class="inline-flex items-center rounded-lg border border-slate-200 bg-slate-100/90 hover:border-blue-300 hover:bg-blue-50/50 transition overflow-hidden text-[11px]">
+                                <div class="flex items-center gap-2 flex-wrap max-w-lg">
+                                    @foreach(array_slice($folders, 0, 5) as $folderName)
+                                        @php
+                                            $isCurrentActiveFolder = (!empty($folderSearch) && strcasecmp($folderName, $folderSearch) === 0);
+                                        @endphp
+                                        <div class="inline-flex items-center rounded-xl border transition overflow-hidden text-[11px] {{ $isCurrentActiveFolder ? 'border-blue-400 bg-blue-50 text-blue-800 font-bold shadow-2xs' : 'border-slate-200 bg-slate-50 hover:border-slate-300 text-slate-700' }}">
                                             <a href="{{ route('dosen.mahasiswa.show', ['nim' => $u->nim, 'path' => $folderName]) }}"
-                                               class="flex items-center gap-1 px-2.5 py-1 text-slate-700 hover:text-blue-700 transition"
+                                               class="flex items-center gap-1.5 px-2.5 py-1 hover:text-blue-600 transition"
                                                title="Buka folder {{ $folderName }}">
-                                                <span>📁</span>
-                                                <span class="font-semibold truncate max-w-[110px]">{{ $folderName }}</span>
+                                                <span class="text-xs">📁</span>
+                                                <span class="truncate max-w-[180px] sm:max-w-[220px]" title="{{ $folderName }}">{{ $folderName }}</span>
                                             </a>
                                             <a href="{{ route('dosen.mahasiswa.download_student_zip', ['nim' => $u->nim, 'path' => $folderName]) }}"
-                                               class="px-1.5 py-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-100 border-l border-slate-200 transition"
+                                               class="px-2 py-1 text-slate-400 hover:text-emerald-700 hover:bg-emerald-100/80 border-l border-slate-200/80 transition"
                                                title="Unduh folder {{ $folderName }} sebagai ZIP">
                                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
@@ -297,9 +299,9 @@
                                             </a>
                                         </div>
                                     @endforeach
-                                    @if(count($folders) > 4)
+                                    @if(count($folders) > 5)
                                         <span class="text-[10.5px] text-slate-400 font-bold">
-                                            +{{ count($folders) - 4 }} folder lain
+                                            +{{ count($folders) - 5 }} folder lain
                                         </span>
                                     @endif
                                 </div>
@@ -466,13 +468,13 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1.5 flex items-center justify-between">
                                     <span>Nama Folder Praktikum / Tugas <span class="text-rose-500">*</span></span>
-                                    <span class="text-[10.5px] font-normal text-slate-400">Subfolder: Matkul/Tugas1</span>
+                                    <span class="text-[10.5px] font-normal text-slate-400">Format: Nama Tugas / Pertemuan</span>
                                 </label>
                                 <input type="text" name="folder_name" required autofocus
-                                       placeholder="Contoh: Praktikum RME - Pertemuan 1"
+                                       placeholder="Contoh: TUGAS 3 - DESAIN FORMULIR"
                                        class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 transition">
                                 <p class="text-[11px] text-slate-400 mt-1">
-                                    Folder otomatis tersimpan di disk <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded text-[10.5px]">/samba/mahasiswa/{NIM}/[Nama Folder]</code>
+                                    Folder otomatis dibuat di penyimpanan mahasiswa <code class="font-mono text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded text-[10.5px]">/samba/mahasiswa/{NIM}/[Nama Folder]</code>
                                 </p>
                             </div>
 
@@ -485,6 +487,7 @@
                                     <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
                                            :class="bulkTargetType === 'selected' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
                                         <input type="radio" name="target_type" value="selected" x-model="bulkTargetType"
+                                               :checked="bulkTargetType === 'selected'"
                                                :disabled="selectedNims.length === 0"
                                                class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                         <div class="text-xs">
@@ -500,6 +503,7 @@
                                     <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
                                            :class="bulkTargetType === 'filter' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
                                         <input type="radio" name="target_type" value="filter" x-model="bulkTargetType"
+                                               :checked="bulkTargetType === 'filter'"
                                                class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                         <div class="text-xs">
                                             <span class="font-bold text-slate-800">Semua Mahasiswa Sesuai Filter Saat Ini</span>
@@ -515,6 +519,7 @@
                                     <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
                                            :class="bulkTargetType === 'class' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
                                         <input type="radio" name="target_type" value="class" x-model="bulkTargetType"
+                                               :checked="bulkTargetType === 'class'"
                                                class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                         <div class="text-xs w-full">
                                             <span class="font-bold text-slate-800">Pilih Berdasarkan Semester &amp; Kelas</span>
@@ -548,6 +553,8 @@
                                     <label class="flex items-start gap-3 p-3 rounded-2xl border cursor-pointer transition"
                                            :class="bulkTargetType === 'all' ? 'bg-indigo-50/60 border-indigo-300' : 'bg-slate-50 border-slate-200 hover:bg-slate-100/50'">
                                         <input type="radio" name="target_type" value="all" x-model="bulkTargetType"
+                                               :checked="bulkTargetType === 'all'"
+                                               class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                                class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                         <div class="text-xs">
                                             <span class="font-bold text-slate-800">Seluruh Mahasiswa Terdaftar di Sistem</span>
