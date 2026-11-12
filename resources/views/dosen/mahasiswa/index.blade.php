@@ -555,7 +555,6 @@
                                         <input type="radio" name="target_type" value="all" x-model="bulkTargetType"
                                                :checked="bulkTargetType === 'all'"
                                                class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
-                                               class="mt-0.5 text-indigo-600 focus:ring-indigo-500 border-slate-300">
                                         <div class="text-xs">
                                             <span class="font-bold text-slate-800">Seluruh Mahasiswa Terdaftar di Sistem</span>
                                             <p class="text-[11px] text-slate-500 mt-0.5">Membuat folder ke seluruh akun mahasiswa tanpa kecuali.</p>
