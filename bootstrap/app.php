@@ -16,6 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // Percayai header reverse proxy (X-Forwarded-Host/Port/Proto) dari 43.173.41.238:888
+        $middleware->trustProxies(at: '*');
+
         // Bagikan data pengaturan instansi ke seluruh views
         $middleware->web(append: [
             \App\Http\Middleware\ShareSettingsToViews::class,
