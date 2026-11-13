@@ -42,44 +42,46 @@
             </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-2.5 self-start md:self-auto">
+        <div class="flex items-center gap-2 flex-wrap md:flex-nowrap shrink-0 self-start md:self-auto">
             {{-- Badge Total Mahasiswa --}}
-            <div class="px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 flex items-center gap-2 shrink-0">
+            <div class="h-9 px-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
                 <span>👥 Total:</span>
-                <span class="text-blue-600 font-extrabold text-sm">{{ $totalStudents }} Mahasiswa</span>
+                <span class="text-blue-600 font-extrabold text-sm">{{ $totalStudents }} Mhs</span>
             </div>
 
-            <div class="flex items-center gap-2 flex-wrap">
-                {{-- Tombol Buat Folder Massal di Akun Mahasiswa --}}
-                <button x-on:click="showBulkFolderModal = true; bulkTargetType = (selectedNims.length > 0 ? 'selected' : 'filter')"
-                        type="button"
-                        class="inline-flex items-center gap-2 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition cursor-pointer shrink-0"
-                        title="Buat folder praktikum atau tugas secara massal di akun mahasiswa">
-                    <svg class="w-4 h-4 text-indigo-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+            {{-- Tombol Buat Folder Massal di Akun Mahasiswa --}}
+            <button x-on:click="showBulkFolderModal = true; bulkTargetType = (selectedNims.length > 0 ? 'selected' : 'filter')"
+                    type="button"
+                    class="h-9 inline-flex items-center gap-1.5 px-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-bold shadow-xs shadow-indigo-500/20 transition cursor-pointer shrink-0"
+                    title="Buat folder praktikum atau tugas secara massal di akun mahasiswa">
+                <svg class="w-4 h-4 text-indigo-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                </svg>
+                <span>+ Buat Folder Massal</span>
+            </button>
+
+            {{-- Tombol Cepat Unduh ZIP Semua Mahasiswa Sesuai Filter --}}
+            @if($totalStudents > 0)
+            <form action="{{ route('dosen.mahasiswa.download_zip') }}" method="POST" class="inline m-0 shrink-0">
+                @csrf
+                <input type="hidden" name="folder" value="{{ $folderSearch }}">
+                <input type="hidden" name="semester" value="{{ $currentSemester }}">
+                <input type="hidden" name="kelas" value="{{ $currentKelas }}">
+                <input type="hidden" name="q" value="{{ $search }}">
+                <button type="submit"
+                        class="h-9 inline-flex items-center gap-1.5 px-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-xs shadow-emerald-500/20 transition cursor-pointer shrink-0"
+                        title="{{ !empty($folderSearch) ? 'Unduh arsip ZIP untuk folder \"' . $folderSearch . '\" (' . $totalStudents . ' mahasiswa)' : 'Unduh ZIP seluruh berkas mahasiswa sesuai filter' }}">
+                    <svg class="w-4 h-4 text-emerald-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                     </svg>
-                    <span>+ Buat Folder Massal</span>
+                    <span>Unduh ZIP</span>
+                    @if(!empty($folderSearch))
+                        <span class="max-w-[110px] lg:max-w-[140px] truncate inline-block font-semibold opacity-95 align-bottom" title="{{ $folderSearch }}">"{{ $folderSearch }}"</span>
+                    @endif
+                    <span class="text-[11px] font-normal opacity-85">({{ $totalStudents }})</span>
                 </button>
-
-                {{-- Tombol Cepat Unduh ZIP Semua Mahasiswa Sesuai Filter --}}
-                @if($totalStudents > 0)
-                <form action="{{ route('dosen.mahasiswa.download_zip') }}" method="POST" class="inline">
-                    @csrf
-                    <input type="hidden" name="folder" value="{{ $folderSearch }}">
-                    <input type="hidden" name="semester" value="{{ $currentSemester }}">
-                    <input type="hidden" name="kelas" value="{{ $currentKelas }}">
-                    <input type="hidden" name="q" value="{{ $search }}">
-                    <button type="submit"
-                            class="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-bold shadow-xs shadow-emerald-500/20 transition cursor-pointer shrink-0"
-                            title="{{ !empty($folderSearch) ? 'Unduh ZIP untuk folder ' . $folderSearch : 'Unduh seluruh berkas mahasiswa sesuai filter' }}">
-                        <svg class="w-4 h-4 text-emerald-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
-                        </svg>
-                        <span>Unduh ZIP @if(!empty($folderSearch)) <span class="max-w-[130px] truncate inline-block font-extrabold align-bottom" title="{{ $folderSearch }}">"{{ $folderSearch }}"</span> @endif ({{ $totalStudents }})</span>
-                    </button>
-                </form>
-                @endif
-            </div>
+            </form>
+            @endif
         </div>
     </div>
 
