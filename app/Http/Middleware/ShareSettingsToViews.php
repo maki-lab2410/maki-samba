@@ -16,6 +16,10 @@ class ShareSettingsToViews
      */
     public function handle(Request $request, Closure $next): Response
     {
+        if ($request->isSecure() || strtolower((string) $request->header('X-Forwarded-Proto')) === 'https') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         $settings = Setting::getAllSettings();
 
         View::share('appTitle', $settings['app_title']);
