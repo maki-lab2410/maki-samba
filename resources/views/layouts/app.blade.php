@@ -96,6 +96,8 @@
         select::-ms-expand {
             display: none;
         }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="text-slate-800 antialiased min-h-screen flex flex-col"
@@ -103,12 +105,12 @@
 
     {{-- ═══ TOP NAVBAR DENGAN RBAC (Role-Based Access Control) ═══ --}}
     <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-4">
             
             {{-- Brand Logo & Info --}}
-            <div class="flex items-center gap-3 shrink-0">
-                <a href="{{ route('filemanager.index') }}" class="flex items-center gap-3 group">
-                    <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform overflow-hidden p-1.5">
+            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <a href="{{ route('filemanager.index') }}" class="flex items-center gap-2.5 sm:gap-3 group min-w-0">
+                    <div class="w-9 h-9 sm:w-10 sm:h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform overflow-hidden p-1.5 shrink-0">
                         @if(!empty($appLogo) && file_exists(public_path($appLogo)))
                             <img src="{{ asset($appLogo) }}" alt="Logo" class="w-full h-full object-contain rounded-xl">
                         @else
@@ -117,12 +119,12 @@
                             </svg>
                         @endif
                     </div>
-                    <div>
-                        <div class="flex items-center gap-2">
-                            <span class="font-black text-blue-900 text-lg leading-tight tracking-tight">{{ $appTitle ?? 'Maki Samba' }}</span>
-                            <span class="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">{{ $institutionShort ?? 'Lab RMIK' }}</span>
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-1.5 sm:gap-2">
+                            <span class="font-black text-blue-900 text-base sm:text-lg leading-tight tracking-tight truncate">{{ $appTitle ?? 'Maki Samba' }}</span>
+                            <span class="bg-blue-100 text-blue-800 text-[9px] sm:text-[10px] font-bold px-1.5 sm:px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">{{ $institutionShort ?? 'Lab RMIK' }}</span>
                         </div>
-                        <p class="text-[11px] text-slate-500 font-medium">{{ $appDescription ?? 'Portal File Manager & Otomatisasi Samba' }}</p>
+                        <p class="text-[10px] sm:text-[11px] text-slate-500 font-medium truncate">{{ $appDescription ?? 'Portal File Manager & Otomatisasi Samba' }}</p>
                     </div>
                 </a>
             </div>
@@ -326,6 +328,50 @@
                                 <p class="text-[11px] font-mono text-slate-400">{{ auth()->user()->nim }}</p>
                             </div>
 
+                            {{-- Menu Navigasi Cepat untuk Layar Mobile --}}
+                            <div class="md:hidden border-b border-slate-100 pb-1 mb-1">
+                                @if(auth()->user()->role === 'mahasiswa')
+                                    <a href="{{ route('filemanager.index') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>📂</span>
+                                        <span class="font-medium">File Manager</span>
+                                    </a>
+                                @elseif(in_array(auth()->user()->role, ['laboran', 'dosen']))
+                                    <a href="{{ route('filemanager.index') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>📂</span>
+                                        <span class="font-medium">Folder Operasional</span>
+                                    </a>
+                                    <a href="{{ route('dosen.mahasiswa.index') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>🎓</span>
+                                        <span class="font-medium">Direktori Mahasiswa</span>
+                                    </a>
+                                @elseif(auth()->user()->role === 'admin')
+                                    <a href="{{ route('filemanager.index') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>📂</span>
+                                        <span class="font-medium">Operasional</span>
+                                    </a>
+                                    <a href="{{ route('dosen.mahasiswa.index') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>🎓</span>
+                                        <span class="font-medium">Mahasiswa</span>
+                                    </a>
+                                    <a href="{{ route('admin.index') }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>👥</span>
+                                        <span class="font-medium">Akun</span>
+                                    </a>
+                                    <a href="{{ route('admin.index', ['tab' => 'monitor']) }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>📊</span>
+                                        <span class="font-medium">Monitoring</span>
+                                    </a>
+                                    <a href="{{ route('admin.index', ['tab' => 'server']) }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>🖥️</span>
+                                        <span class="font-medium">Server</span>
+                                    </a>
+                                    <a href="{{ route('admin.index', ['tab' => 'settings']) }}" class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
+                                        <span>⚙️</span>
+                                        <span class="font-medium">Pengaturan</span>
+                                    </a>
+                                @endif
+                            </div>
+
                             <a href="{{ route('profile.index') }}"
                                class="flex items-center gap-2 px-4 py-2 text-slate-700 hover:bg-blue-50 hover:text-blue-700 transition">
                                 <span>👤</span>
@@ -357,6 +403,157 @@
             </div>
 
         </div>
+
+        {{-- ═══ MOBILE NAVIGATION BAR RESPONSIF (Tampil di < 768px) ═══ --}}
+        @auth
+        <nav aria-label="Menu Mobile" class="md:hidden border-t border-slate-100 bg-slate-50/70 px-3 py-2 overflow-x-auto no-scrollbar">
+            <div class="bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 inline-flex items-center gap-1 text-xs min-w-max">
+
+                {{-- 1. MENU MAHASISWA (MOBILE) --}}
+                @if(auth()->user()->role === 'mahasiswa')
+                    @php
+                        $activeFile = request()->routeIs('filemanager.*');
+                        $activeProf = request()->routeIs('profile.*');
+                    @endphp
+                    <a href="{{ route('filemanager.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeFile ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeFile ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                        </svg>
+                        <span>File Manager</span>
+                    </a>
+
+                    <a href="{{ route('profile.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeProf ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeProf ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        <span>Profil Saya</span>
+                    </a>
+
+                    <button type="button" x-on:click="showSambaHelp = true"
+                            class="px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium transition flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>Panduan Samba</span>
+                    </button>
+                @endif
+
+                {{-- 2. MENU LABORAN & DOSEN (MOBILE) --}}
+                @if(in_array(auth()->user()->role, ['laboran', 'dosen']))
+                    @php
+                        $activeOp   = request()->routeIs('filemanager.*');
+                        $activeMhs  = request()->routeIs('dosen.mahasiswa.*');
+                        $activeProf = request()->routeIs('profile.*');
+                    @endphp
+                    <a href="{{ route('filemanager.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeOp ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeOp ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                        </svg>
+                        <span>Folder Operasional</span>
+                    </a>
+
+                    <a href="{{ route('dosen.mahasiswa.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeMhs ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeMhs ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                        </svg>
+                        <span>Direktori Mahasiswa</span>
+                    </a>
+
+                    <a href="{{ route('profile.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeProf ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeProf ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        <span>Profil</span>
+                    </a>
+
+                    <button type="button" x-on:click="showSambaHelp = true"
+                            class="px-3 py-1.5 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium transition flex items-center gap-1.5 whitespace-nowrap shrink-0">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <span>Panduan</span>
+                    </button>
+                @endif
+
+                {{-- 3. MENU ADMIN (MOBILE) --}}
+                @if(auth()->user()->role === 'admin')
+                    @php
+                        $activeOp   = request()->routeIs('filemanager.*');
+                        $activeMhs  = request()->routeIs('dosen.mahasiswa.*');
+                        $activeAcc  = request()->routeIs('admin.index') && !in_array(request('tab'), ['monitor', 'server', 'settings']);
+                        $activeMon  = request('tab') === 'monitor';
+                        $activeSrv  = request('tab') === 'server';
+                        $activeSet  = request('tab') === 'settings';
+                        $activeProf = request()->routeIs('profile.*');
+                    @endphp
+                    <a href="{{ route('filemanager.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeOp ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeOp ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                        </svg>
+                        <span>Operasional</span>
+                    </a>
+
+                    <a href="{{ route('dosen.mahasiswa.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeMhs ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeMhs ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+                        </svg>
+                        <span>Mahasiswa</span>
+                    </a>
+
+                    <a href="{{ route('admin.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeAcc ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeAcc ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <span>Akun</span>
+                    </a>
+
+                    <a href="{{ route('admin.index', ['tab' => 'monitor']) }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeMon ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeMon ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                        <span>Monitoring</span>
+                    </a>
+
+                    <a href="{{ route('admin.index', ['tab' => 'server']) }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeSrv ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeSrv ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"/>
+                        </svg>
+                        <span>Server</span>
+                    </a>
+
+                    <a href="{{ route('admin.index', ['tab' => 'settings']) }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeSet ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeSet ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span>Pengaturan</span>
+                    </a>
+
+                    <a href="{{ route('profile.index') }}"
+                       class="px-3 py-1.5 rounded-xl transition flex items-center gap-1.5 whitespace-nowrap shrink-0 {{ $activeProf ? 'bg-white text-blue-600 shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 font-medium' }}">
+                        <svg class="w-4 h-4 {{ $activeProf ? 'text-blue-600' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+                        </svg>
+                        <span>Profil</span>
+                    </a>
+                @endif
+
+            </div>
+        </nav>
+        @endauth
     </header>
 
     {{-- ═══ NOTIFIKASI FLASH ALERT ═══ --}}

@@ -94,7 +94,10 @@ class Setting extends Model
         try {
             if (request()) {
                 $reqHost = request()->getHost();
-                if (!empty($reqHost) && !in_array($reqHost, ['localhost', '127.0.0.1'])) {
+                $isPublicProxy = str_contains($reqHost, 'sslip.io')
+                    || str_contains($reqHost, 'nip.io')
+                    || $reqHost === '43.173.41.238';
+                if (!empty($reqHost) && !$isPublicProxy && !in_array($reqHost, ['localhost', '127.0.0.1'])) {
                     return $reqHost;
                 }
             }
@@ -105,6 +108,6 @@ class Setting extends Model
             return $serverAddr;
         }
 
-        return !empty($envHost) ? $envHost : '192.168.1.100';
+        return !empty($envHost) && $envHost !== '192.168.1.100' ? $envHost : '192.168.67.225';
     }
 }
