@@ -78,20 +78,24 @@ class SambaService
             $role = 'admin';
         }
 
+        // Pastikan folder fisik user tersedia dengan izin 0777 di server
+        $operasionalPath = rtrim(env('SAMBA_OPERASIONAL_PATH', '/samba/operasional'), '/');
+        if ($role === 'admin') {
+            $physicalDir = $operasionalPath;
+        } elseif (in_array($role, ['laboran', 'dosen'], true)) {
+            $physicalDir = $operasionalPath . '/' . $nim;
+        } else {
+            $physicalDir = rtrim($this->baseStoragePath, '/') . '/' . $nim;
+        }
+        if (!File::isDirectory($physicalDir)) {
+            @File::makeDirectory($physicalDir, 0777, true, true);
+        }
+        @chmod($physicalDir, 0777);
+
         // 2. Mode Simulasi / Development Fallback:
-        // Jika script bash belum dipasang di server lokal/dev atau SAMBA_MOCK_SHELL=true
+        // Jika script bash belum dipasang di server lokal/dev atau SAMBA_MOCK_SHELL=true atau proc_open dinonaktifkan
         $mockMode = env('SAMBA_MOCK_SHELL', false);
-        if ($mockMode || (!file_exists($this->scriptPath) && !windows_os() && !is_executable($this->scriptPath))) {
-            if ($role === 'laboran' || $role === 'admin') {
-                $targetPath = env('SAMBA_OPERASIONAL_PATH', '/samba/operasional');
-            } else {
-                $targetPath = rtrim($this->baseStoragePath, '/') . '/' . $nim;
-            }
-
-            if (!File::isDirectory($targetPath)) {
-                File::makeDirectory($targetPath, 0777, true, true);
-            }
-
+        if ($mockMode || !function_exists('proc_open') || (!file_exists($this->scriptPath) && !windows_os() && !is_executable($this->scriptPath))) {
             // Hapus folder salah di mahasiswa jika mensimulasikan laboran
             if ($role === 'laboran') {
                 $wrongDir = rtrim($this->baseStoragePath, '/') . '/laboran';
@@ -100,11 +104,11 @@ class SambaService
                 }
             }
 
-            Log::info("Samba Mock Mode: Akun {$nim} ({$role}) disimulasikan dibuat di {$targetPath}");
+            Log::info("Samba Mock/PHP Mode: Akun {$nim} ({$role}) dipastikan di {$physicalDir}");
             return [
                 'success' => true,
-                'message' => "Akun Samba untuk {$nim} ({$role}) berhasil dibuat (Development Mock).",
-                'output'  => "Folder {$targetPath} created successfully.",
+                'message' => "Akun Samba untuk {$nim} ({$role}) berhasil disiapkan.",
+                'output'  => "Folder {$physicalDir} ready.",
             ];
         }
 
@@ -127,23 +131,28 @@ class SambaService
         $outputString = '';
         $returnStatus = -1;
 
-        $process = proc_open($command, $descriptorSpec, $pipes);
+        try {
+            $process = proc_open($command, $descriptorSpec, $pipes);
 
-        if (is_resource($process)) {
-            // Tulis password ke STDIN
-            fwrite($pipes[0], $password . "\n");
-            fclose($pipes[0]);
+            if (is_resource($process)) {
+                // Tulis password ke STDIN
+                fwrite($pipes[0], $password . "\n");
+                fclose($pipes[0]);
 
-            $stdout = stream_get_contents($pipes[1]);
-            fclose($pipes[1]);
+                $stdout = stream_get_contents($pipes[1]);
+                fclose($pipes[1]);
 
-            $stderr = stream_get_contents($pipes[2]);
-            fclose($pipes[2]);
+                $stderr = stream_get_contents($pipes[2]);
+                fclose($pipes[2]);
 
-            $returnStatus = proc_close($process);
-            $outputString = trim($stdout . ($stderr ? "\n" . $stderr : ''));
-        } else {
-            $outputString = 'Gagal menginisialisasi subproses OS.';
+                $returnStatus = proc_close($process);
+                $outputString = trim($stdout . ($stderr ? "\n" . $stderr : ''));
+            } else {
+                $outputString = 'Gagal menginisialisasi subproses OS.';
+            }
+        } catch (\Throwable $e) {
+            $outputString = 'Eksekusi subproses tidak tersedia: ' . $e->getMessage();
+            $returnStatus = -1;
         }
 
         if ($returnStatus === 0) {

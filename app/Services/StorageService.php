@@ -64,12 +64,12 @@ class StorageService
             'throw'       => false,
             'permissions' => [
                 'file' => [
-                    'public'  => 0666,
-                    'private' => 0600,
+                    'public'  => 0777,
+                    'private' => 0777,
                 ],
                 'dir' => [
                     'public'  => 0777,
-                    'private' => 0700,
+                    'private' => 0777,
                 ],
             ],
         ]);
@@ -238,9 +238,10 @@ class StorageService
     public function createFolder(string $currentPath, string $folderName): bool
     {
         $safeCurrentPath = $this->cleanPath($currentPath);
-        $safeFolderName = trim(str_replace(['/', '\\', "\0"], '', $folderName));
+        $safeFolderName = preg_replace('/[\x00-\x1F\x7F\/\\\\*?"<>|:]+/u', '', $folderName);
+        $safeFolderName = trim((string) $safeFolderName, " .");
 
-        if (empty($safeFolderName)) {
+        if ($safeFolderName === '' || $safeFolderName === '.' || $safeFolderName === '..') {
             return false;
         }
 
@@ -264,9 +265,13 @@ class StorageService
     {
         $currentPath = $this->cleanPath($currentPath);
         $originalName = $uploadedFile->getClientOriginalName();
-        
-        // Bersihkan nama file dari karakter berbahaya
-        $safeFileName = preg_replace('/[^\w\.\-\_ ]+/u', '_', $originalName);
+
+        // Bersihkan nama file hanya dari karakter ilegal filesystem / SMB
+        $safeFileName = preg_replace('/[\x00-\x1F\x7F\/\\\\*?"<>|:]+/u', '_', $originalName);
+        $safeFileName = ltrim(trim((string) $safeFileName), '.');
+        if ($safeFileName === '') {
+            $safeFileName = 'file_' . time();
+        }
 
         // Jika file sudah ada, beri suffix timestamp agar tidak tertimpa tanpa sengaja
         $targetPath = $currentPath ? "{$currentPath}/{$safeFileName}" : $safeFileName;
@@ -280,7 +285,9 @@ class StorageService
         // Simpan menggunakan disk samba_user
         $savedPath = $this->disk()->putFileAs($currentPath, $uploadedFile, $safeFileName);
         if ($savedPath) {
-            @chmod($this->userRoot . '/' . $savedPath, 0666);
+            $targetDir = $this->userRoot . ($currentPath ? '/' . $currentPath : '');
+            @chmod($targetDir, 0777);
+            @chmod($this->userRoot . '/' . $savedPath, 0777);
         }
         return $savedPath ?: null;
     }
@@ -341,77 +348,75 @@ class StorageService
             return false; // Jangan pernah hapus root!
         }
 
+        $fullPhysicalPath = $this->userRoot . '/' . $safePath;
+
         if ($isDir) {
-            return $this->disk()->deleteDirectory($safePath);
+            if ($this->disk()->deleteDirectory($safePath)) {
+                return true;
+            }
+            return File::isDirectory($fullPhysicalPath) ? File::deleteDirectory($fullPhysicalPath) : false;
         }
 
-        return $this->disk()->delete($safePath);
+        if ($this->disk()->delete($safePath)) {
+            return true;
+        }
+        return File::exists($fullPhysicalPath) ? @unlink($fullPhysicalPath) : false;
+    }
+
+    /**
+     * Hitung total byte penggunaan penyimpanan pada direktori secara aman.
+     * Menggunakan iterator native PHP dengan mengabaikan direktori sistem & file tersembunyi (seperti .DS_Store / ._* dari MacBook Finder).
+     */
+    public static function calculateDirectorySize(string $dirPath): int
+    {
+        if (!is_dir($dirPath)) {
+            return 0;
+        }
+
+        $totalBytes = 0;
+        $ignoredNames = ['.Recycle_bin', '.recycle', 'lost+found'];
+
+        try {
+            $dirIterator = new \RecursiveDirectoryIterator($dirPath, \FilesystemIterator::SKIP_DOTS);
+            $filterIterator = new \RecursiveCallbackFilterIterator(
+                $dirIterator,
+                function (\SplFileInfo $current) use ($ignoredNames) {
+                    $name = $current->getFilename();
+                    if (in_array($name, $ignoredNames, true) || str_starts_with($name, '.')) {
+                        return false;
+                    }
+                    return true;
+                }
+            );
+
+            $iterator = new \RecursiveIteratorIterator(
+                $filterIterator,
+                \RecursiveIteratorIterator::LEAVES_ONLY,
+                \RecursiveIteratorIterator::CATCH_GET_CHILD
+            );
+
+            foreach ($iterator as $fileInfo) {
+                try {
+                    if ($fileInfo->isFile() && !$fileInfo->isLink()) {
+                        $totalBytes += (int) $fileInfo->getSize();
+                    }
+                } catch (\Throwable $e) {
+                    // Abaikan file yang tidak dapat diakses
+                }
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning("StorageService: Gagal menghitung storage untuk {$dirPath}: " . $e->getMessage());
+        }
+
+        return $totalBytes;
     }
 
     /**
      * Hitung total byte penggunaan penyimpanan di direktori fisik user.
-     * Strategi:
-     *   1. `du -sb` (paling akurat, menghitung semua file termasuk yang dibuat Samba)
-     *   2. Symfony Finder via File::allFiles() (bypass Laravel disk cache)
-     *   3. Laravel disk()->allFiles() (terakhir, bisa miss karena permission)
      */
     public function getTotalStorageUsed(): int
     {
-        if (!File::isDirectory($this->userRoot)) {
-            return 0;
-        }
-
-        // ── Strategy 1: `du` command (paling reliable di Linux server) ──
-        try {
-            $escapedPath = escapeshellarg($this->userRoot);
-            // du -sb = total bytes; du -sk = total kilobytes (macOS fallback)
-            $output = @shell_exec("du -sb {$escapedPath} 2>/dev/null");
-            if ($output) {
-                $parts = preg_split('/\s+/', trim($output));
-                $bytes = (int) ($parts[0] ?? 0);
-                if ($bytes > 0) {
-                    return $bytes;
-                }
-            }
-            // macOS: du -sk (kilobytes)
-            $output = @shell_exec("du -sk {$escapedPath} 2>/dev/null");
-            if ($output) {
-                $parts = preg_split('/\s+/', trim($output));
-                $kb = (int) ($parts[0] ?? 0);
-                if ($kb > 0) {
-                    return $kb * 1024;
-                }
-            }
-        } catch (\Throwable $e) {
-            // Lanjut ke strategy berikutnya
-        }
-
-        // ── Strategy 2: Symfony Finder (langsung ke filesystem, tanpa Laravel disk) ──
-        try {
-            $totalBytes = 0;
-            $allFiles = File::allFiles($this->userRoot);
-            foreach ($allFiles as $file) {
-                $totalBytes += (int) $file->getSize();
-            }
-            if ($totalBytes > 0) {
-                return $totalBytes;
-            }
-        } catch (\Throwable $e) {
-            // Lanjut ke strategy berikutnya
-        }
-
-        // ── Strategy 3: Laravel disk (fallback terakhir) ──
-        try {
-            $totalBytes = 0;
-            $allFiles = $this->disk()->allFiles();
-            foreach ($allFiles as $file) {
-                $totalBytes += (int) $this->disk()->size($file);
-            }
-            return $totalBytes;
-        } catch (\Throwable $e) {
-            \Illuminate\Support\Facades\Log::warning("StorageService: Gagal menghitung storage untuk {$this->userRoot}: " . $e->getMessage());
-            return 0;
-        }
+        return self::calculateDirectorySize($this->userRoot);
     }
 
     /**

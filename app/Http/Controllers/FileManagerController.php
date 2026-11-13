@@ -134,11 +134,11 @@ class FileManagerController extends Controller
     public function createFolder(Request $request)
     {
         $request->validate([
-            'folder_name'  => ['required', 'string', 'max:100', 'regex:/^[a-zA-Z0-9_\-\s.]+$/'],
+            'folder_name'  => ['required', 'string', 'max:150'],
             'current_path' => ['nullable', 'string'],
         ], [
             'folder_name.required' => 'Nama folder tidak boleh kosong.',
-            'folder_name.regex'    => 'Nama folder hanya boleh mengandung huruf, angka, spasi, titik, atau strip.',
+            'folder_name.max'      => 'Nama folder maksimal 150 karakter.',
         ]);
 
         $storage = $this->getStorageService();

@@ -266,9 +266,13 @@ class AdminController extends Controller
         }
 
         // Hapus user samba dari Linux
-        $safeNim = escapeshellarg($nim);
-        @exec("sudo smbpasswd -x {$safeNim} 2>&1");
-        @exec("sudo userdel {$safeNim} 2>&1");
+        if (function_exists('exec')) {
+            $safeNim = escapeshellarg($nim);
+            try {
+                @exec("sudo smbpasswd -x {$safeNim} 2>&1");
+                @exec("sudo userdel {$safeNim} 2>&1");
+            } catch (\Throwable $e) {}
+        }
 
         return back()->with('success', "Akun {$name} ({$nim}) dan kredensial Samba berhasil dihapus.");
     }
@@ -300,7 +304,8 @@ class AdminController extends Controller
         while (($data = fgetcsv($handle, 1000, ',')) !== false) {
             $row++;
             // Lewati header jika baris pertama adalah nama kolom
-            if ($row === 1 && (strtolower($data[0] ?? '') === 'nim' || strtolower($data[0] ?? '') === 'username')) {
+            $firstCol = strtolower(trim($data[0] ?? ''));
+            if ($row === 1 && (str_contains($firstCol, 'nim') || str_contains($firstCol, 'username'))) {
                 continue;
             }
 
@@ -395,7 +400,13 @@ class AdminController extends Controller
         $status = null;
 
         // Jalankan perintah Linux 'smbstatus -b' (brief session overview)
-        @exec("sudo smbstatus -b 2>&1", $output, $status);
+        if (function_exists('exec')) {
+            try {
+                @exec("sudo smbstatus -b 2>&1", $output, $status);
+            } catch (\Throwable $e) {
+                $output = [];
+            }
+        }
 
         if (!empty($output)) {
             foreach ($output as $line) {

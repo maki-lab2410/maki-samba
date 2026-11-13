@@ -371,7 +371,7 @@
                     {{-- ── A. DAFTAR FOLDER ── --}}
                     @foreach($folders as $folder)
                     <tr class="hover:bg-blue-50/40 transition group"
-                        x-show="!search || '{{ strtolower($folder['name']) }}'.includes(search.toLowerCase())">
+                        x-show="!search || {{ \Illuminate\Support\Js::from(strtolower($folder['name'])) }}.includes(search.toLowerCase())">
                         <td class="py-2.5 px-4 font-semibold text-slate-800">
                             <a href="{{ route('filemanager.index', ['path' => $folder['path']]) }}"
                                class="flex items-center gap-3 group-hover:text-blue-600 transition">
@@ -386,7 +386,7 @@
                         <td class="py-2.5 px-4 text-slate-400 font-mono text-[11px]">—</td>
                         <td class="py-2.5 px-4 text-slate-500">{{ $folder['last_modified'] }}</td>
                         <td class="py-2.5 px-4 text-right">
-                            <button x-on:click="confirmDelete('{{ $folder['path'] }}', '{{ $folder['name'] }}', 'folder')"
+                            <button x-on:click="confirmDelete({{ \Illuminate\Support\Js::from($folder['path']) }}, {{ \Illuminate\Support\Js::from($folder['name']) }}, 'folder')"
                                     type="button"
                                     class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
                                     title="Hapus Folder">
@@ -405,7 +405,7 @@
                         $filePreviewUrl = route('filemanager.preview', ['path' => $file['path']]);
                     @endphp
                     <tr class="hover:bg-slate-50/70 transition group"
-                        x-show="!search || '{{ strtolower($file['name']) }}'.includes(search.toLowerCase())">
+                        x-show="!search || {{ \Illuminate\Support\Js::from(strtolower($file['name'])) }}.includes(search.toLowerCase())">
                         <td class="py-2.5 px-4 font-medium text-slate-800">
                             <div class="flex items-center gap-3">
                                 @if($isImg)
@@ -459,7 +459,7 @@
                                 </a>
 
                                 {{-- Tombol Hapus --}}
-                                <button x-on:click="confirmDelete('{{ $file['path'] }}', '{{ $file['name'] }}', 'file')"
+                                <button x-on:click="confirmDelete({{ \Illuminate\Support\Js::from($file['path']) }}, {{ \Illuminate\Support\Js::from($file['name']) }}, 'file')"
                                         type="button"
                                         class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition"
                                         title="Hapus File">
@@ -493,178 +493,187 @@
     </div>
 
     {{-- ═══ 5. MODAL BUAT FOLDER BARU ═══ --}}
-    <div x-cloak x-show="showNewFolderModal"
-         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-        <div x-on:click.outside="showNewFolderModal = false"
-             class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
-            <h3 class="font-bold text-slate-800 text-base mb-1">Buat Folder Baru</h3>
-            <p class="text-xs text-slate-500 mb-4">Folder akan dibuat di path saat ini.</p>
+    <template x-teleport="body">
+        <div x-cloak x-show="showNewFolderModal"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div x-on:click="showNewFolderModal = false" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
+            <div class="relative z-10 bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+                <h3 class="font-bold text-slate-800 text-base mb-1">Buat Folder Baru</h3>
+                <p class="text-xs text-slate-500 mb-4">Folder akan dibuat di path saat ini.</p>
 
-            <form action="{{ route('filemanager.folder.create') }}" method="POST">
-                @csrf
-                <input type="hidden" name="current_path" value="{{ $current_path }}">
-                
-                <div class="mb-4">
-                    <label class="block text-xs font-bold text-slate-600 mb-1">Nama Folder</label>
-                    <input type="text" name="folder_name" required autofocus placeholder="Contoh: Tugas_Praktikum"
-                           class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                </div>
-
-                <div class="flex items-center justify-end gap-2">
-                    <button x-on:click="showNewFolderModal = false" type="button"
-                            class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
-                        Batal
-                    </button>
-                    <button type="submit"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                        Simpan Folder
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    {{-- ═══ 6. MODAL UPLOAD FILE DENGAN JS PREVIEW ═══ --}}
-    <div x-cloak x-show="showUploadModal"
-         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-        <div x-on:click.outside="showUploadModal = false"
-             class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-                <div class="flex items-center gap-2">
-                    <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
-                        </svg>
-                    </span>
-                    <h3 class="font-bold text-slate-800 text-base">Unggah File ke Samba</h3>
-                </div>
-                <button x-on:click="showUploadModal = false" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
-            </div>
-
-            <form action="{{ route('filemanager.upload') }}" method="POST" enctype="multipart/form-data"
-                  onsubmit="this.querySelector('button[type=submit]').disabled = true; this.querySelector('button[type=submit]').innerText = 'Sedang mengunggah...';">
-                @csrf
-                <input type="hidden" name="current_path" value="{{ $current_path }}">
-
-                {{-- Drag & Drop Upload Zone --}}
-                <div class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50 mb-4"
-                     x-on:dragover.prevent="isDragging = true"
-                     x-on:dragleave.prevent="isDragging = false"
-                     x-on:drop.prevent="isDragging = false; $refs.fileInput.files = $event.dataTransfer.files; $refs.fileInput.dispatchEvent(new Event('change')); handleFileSelect($event.dataTransfer.files)"
-                     :class="{ 'border-blue-500 bg-blue-50/50': isDragging }">
-                    <input x-ref="fileInput" type="file" name="files[]" multiple required class="hidden" id="fileUploadInput"
-                           x-on:change="handleFileSelect($event.target.files)">
+                <form action="{{ route('filemanager.folder.create') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="current_path" value="{{ $current_path }}">
                     
-                    <label for="fileUploadInput" class="cursor-pointer block">
-                        <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
-                            </svg>
-                        </div>
-                        <p class="text-xs font-bold text-slate-700 mb-1">Tarik & Jatuhkan file di sini, atau <span class="text-blue-600 underline">Pilih File</span></p>
-                        <p class="text-[11px] text-slate-400">Mendukung multi-file upload sekaligus.</p>
-                    </label>
-                </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-slate-600 mb-1">Nama Folder</label>
+                        <input type="text" name="folder_name" required autofocus placeholder="Contoh: Tugas 1 (Revisi)"
+                               class="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    </div>
 
-                {{-- ═══ LIVE JS FILE PREVIEW LIST ═══ --}}
-                <div x-show="selectedFiles.length > 0" class="mb-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <p class="text-xs font-bold text-slate-700">
-                            File Terpilih (<span x-text="selectedFiles.length" class="text-blue-600 font-black"></span>):
-                        </p>
-                        <button type="button" x-on:click="clearSelectedFiles()"
-                                class="text-[11px] text-rose-600 hover:underline font-semibold">
-                            Hapus Semua
+                    <div class="flex items-center justify-end gap-2">
+                        <button x-on:click="showNewFolderModal = false" type="button"
+                                class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                            Batal
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                            Simpan Folder
                         </button>
                     </div>
-
-                    <div class="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100">
-                        <template x-for="(file, index) in selectedFiles" :key="index">
-                            <div class="flex items-center justify-between gap-2 py-1 px-1.5 text-xs">
-                                <div class="flex items-center gap-2 overflow-hidden min-w-0">
-                                    <span class="w-5 h-5 rounded bg-blue-100 text-blue-700 font-bold text-[9px] flex items-center justify-center shrink-0 uppercase"
-                                          x-text="file.ext.slice(0, 3)"></span>
-                                    <span class="font-medium text-slate-700 truncate" x-text="file.name"></span>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
-                                    <span class="text-[11px] text-slate-400 font-mono" x-text="file.size"></span>
-                                    <button type="button" x-on:click="removeSelectedFile(index)"
-                                            class="text-slate-400 hover:text-rose-600 p-0.5 rounded transition"
-                                            title="Batalkan file ini">
-                                        &times;
-                                    </button>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                {{-- Catatan Khusus File Besar --}}
-                <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5">
-                    <p class="text-[11.5px] font-bold text-amber-800 mb-0.5">⚠️ Catatan Batas Kuota & File Besar:</p>
-                    <p class="text-[11px] text-amber-700 leading-relaxed">
-                        Maksimal kuota per mahasiswa adalah <strong>1 GB</strong>. Untuk file berukuran sangat besar, disarankan memindahkan file langsung melalui koneksi Samba LAN.
-                    </p>
-                </div>
-
-                <div class="flex items-center justify-end gap-2">
-                    <button x-on:click="showUploadModal = false" type="button"
-                            class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
-                        Batal
-                    </button>
-                    <button type="submit"
-                            class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                        Mulai Unggah
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
+    </template>
+
+    {{-- ═══ 6. MODAL UPLOAD FILE DENGAN JS PREVIEW ═══ --}}
+    <template x-teleport="body">
+        <div x-cloak x-show="showUploadModal"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div x-on:click="showUploadModal = false" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
+            <div class="relative z-10 bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto p-6 shadow-2xl border border-slate-200">
+                <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                            </svg>
+                        </span>
+                        <h3 class="font-bold text-slate-800 text-base">Unggah File ke Samba</h3>
+                    </div>
+                    <button x-on:click="showUploadModal = false" type="button" class="text-slate-400 hover:text-slate-600 text-lg font-bold">&times;</button>
+                </div>
+
+                <form action="{{ route('filemanager.upload') }}" method="POST" enctype="multipart/form-data"
+                      onsubmit="this.querySelector('button[type=submit]').disabled = true; this.querySelector('button[type=submit]').innerText = 'Sedang mengunggah...';">
+                    @csrf
+                    <input type="hidden" name="current_path" value="{{ $current_path }}">
+
+                    {{-- Drag & Drop Upload Zone --}}
+                    <div class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-6 text-center cursor-pointer transition bg-slate-50/50 mb-4"
+                         x-on:dragover.prevent="isDragging = true"
+                         x-on:dragleave.prevent="isDragging = false"
+                         x-on:drop.prevent="isDragging = false; $refs.fileInput.files = $event.dataTransfer.files; $refs.fileInput.dispatchEvent(new Event('change')); handleFileSelect($event.dataTransfer.files)"
+                         :class="{ 'border-blue-500 bg-blue-50/50': isDragging }">
+                        <input x-ref="fileInput" type="file" name="files[]" multiple required class="hidden" id="fileUploadInput"
+                               x-on:change="handleFileSelect($event.target.files)">
+                        
+                        <label for="fileUploadInput" class="cursor-pointer block">
+                            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto mb-3">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                                </svg>
+                            </div>
+                            <p class="text-xs font-bold text-slate-700 mb-1">Tarik & Jatuhkan file di sini, atau <span class="text-blue-600 underline">Pilih File</span></p>
+                            <p class="text-[11px] text-slate-400">Mendukung multi-file upload sekaligus.</p>
+                        </label>
+                    </div>
+
+                    {{-- ═══ LIVE JS FILE PREVIEW LIST ═══ --}}
+                    <div x-show="selectedFiles.length > 0" class="mb-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-xs font-bold text-slate-700">
+                                File Terpilih (<span x-text="selectedFiles.length" class="text-blue-600 font-black"></span>):
+                            </p>
+                            <button type="button" x-on:click="clearSelectedFiles()"
+                                    class="text-[11px] text-rose-600 hover:underline font-semibold">
+                                Hapus Semua
+                            </button>
+                        </div>
+
+                        <div class="max-h-40 overflow-y-auto space-y-1.5 p-2 bg-slate-50 rounded-xl border border-slate-200 divide-y divide-slate-100">
+                            <template x-for="(file, index) in selectedFiles" :key="index">
+                                <div class="flex items-center justify-between gap-2 py-1 px-1.5 text-xs">
+                                    <div class="flex items-center gap-2 overflow-hidden min-w-0">
+                                        <span class="w-5 h-5 rounded bg-blue-100 text-blue-700 font-bold text-[9px] flex items-center justify-center shrink-0 uppercase"
+                                              x-text="file.ext.slice(0, 3)"></span>
+                                        <span class="font-medium text-slate-700 truncate" x-text="file.name"></span>
+                                    </div>
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <span class="text-[11px] text-slate-400 font-mono" x-text="file.size"></span>
+                                        <button type="button" x-on:click="removeSelectedFile(index)"
+                                                class="text-slate-400 hover:text-rose-600 p-0.5 rounded transition"
+                                                title="Batalkan file ini">
+                                            &times;
+                                        </button>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+
+                    {{-- Catatan Khusus File Besar --}}
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5">
+                        <p class="text-[11.5px] font-bold text-amber-800 mb-0.5">⚠️ Catatan Batas Kuota & File Besar:</p>
+                        <p class="text-[11px] text-amber-700 leading-relaxed">
+                            Maksimal kuota per mahasiswa adalah <strong>1 GB</strong>. Untuk file berukuran sangat besar, disarankan memindahkan file langsung melalui koneksi Samba LAN.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-2">
+                        <button x-on:click="showUploadModal = false" type="button"
+                                class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                            Batal
+                        </button>
+                        <button type="submit"
+                                :disabled="selectedFiles.length === 0"
+                                :class="selectedFiles.length === 0 ? 'opacity-50 cursor-not-allowed bg-slate-400' : 'bg-blue-600 hover:bg-blue-700'"
+                                class="px-4 py-2 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                            Mulai Unggah
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </template>
 
     {{-- ═══ 7. MODAL KONFIRMASI HAPUS ═══ --}}
-    <div x-cloak x-show="showDeleteModal"
-         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-        <div x-on:click.outside="showDeleteModal = false"
-             class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
-            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-3">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                </svg>
-            </div>
-            
-            <h3 class="font-bold text-slate-800 text-base mb-1">Konfirmasi Penghapusan</h3>
-            <p class="text-xs text-slate-500 mb-4 leading-relaxed">
-                Apakah Anda yakin ingin menghapus <span class="font-bold text-slate-800" x-text="deleteData.type === 'folder' ? 'folder' : 'file'"></span>:
-                <br><code class="font-mono text-rose-600 font-bold break-all" x-text="deleteData.name"></code>?
-                <br><span class="text-rose-500 text-[11px]">Tindakan ini tidak dapat dibatalkan.</span>
-            </p>
-
-            <form action="{{ route('filemanager.destroy') }}" method="POST">
-                @csrf
-                @method('DELETE')
-                <input type="hidden" name="current_path" value="{{ $current_path }}">
-                <input type="hidden" name="path" :value="deleteData.path">
-                <input type="hidden" name="type" :value="deleteData.type">
-
-                <div class="flex items-center justify-end gap-2">
-                    <button x-on:click="showDeleteModal = false" type="button"
-                            class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
-                        Batal
-                    </button>
-                    <button type="submit"
-                            class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
-                        Ya, Hapus
-                    </button>
+    <template x-teleport="body">
+        <div x-cloak x-show="showDeleteModal"
+             class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div x-on:click="showDeleteModal = false" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"></div>
+            <div class="relative z-10 bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl border border-slate-200">
+                <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center mb-3">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
                 </div>
-            </form>
+                
+                <h3 class="font-bold text-slate-800 text-base mb-1">Konfirmasi Penghapusan</h3>
+                <p class="text-xs text-slate-500 mb-4 leading-relaxed">
+                    Apakah Anda yakin ingin menghapus <span class="font-bold text-slate-800" x-text="deleteData.type === 'folder' ? 'folder' : 'file'"></span>:
+                    <br><code class="font-mono text-rose-600 font-bold break-all" x-text="deleteData.name"></code>?
+                    <br><span class="text-rose-500 text-[11px]">Tindakan ini tidak dapat dibatalkan.</span>
+                </p>
+
+                <form action="{{ route('filemanager.destroy') }}" method="POST">
+                    @csrf
+                    @method('DELETE')
+                    <input type="hidden" name="current_path" value="{{ $current_path }}">
+                    <input type="hidden" name="path" :value="deleteData.path">
+                    <input type="hidden" name="type" :value="deleteData.type">
+
+                    <div class="flex items-center justify-end gap-2">
+                        <button x-on:click="showDeleteModal = false" type="button"
+                                class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">
+                            Batal
+                        </button>
+                        <button type="submit"
+                                class="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm transition">
+                            Ya, Hapus
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-    </div>
+    </template>
 
     {{-- ═══ 8. MODAL PRATINJAU FILE (FILE PREVIEW LIGHTBOX/MODAL) ═══ --}}
-    <div x-cloak x-show="showPreviewModal"
-         class="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
-        <div x-on:click.outside="showPreviewModal = false"
-             class="bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden transition-all">
+    <template x-teleport="body">
+        <div x-cloak x-show="showPreviewModal"
+             class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5">
+            <div x-on:click="showPreviewModal = false" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+            <div class="relative z-10 bg-white rounded-3xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden transition-all">
             
             {{-- Modal Header --}}
             <div class="px-5 py-3.5 border-b border-slate-100 flex items-center justify-between gap-3 bg-slate-50/80 shrink-0">
@@ -786,7 +795,8 @@
             </div>
 
         </div>
-    </div>
+        </div>
+    </template>
 
 </div>
 @endsection

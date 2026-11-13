@@ -88,16 +88,16 @@ class DosenMahasiswaController extends Controller
                     // Abaikan kendala permission direktori
                 }
 
-                // Self-healing: jika folder mahasiswa kosong tanpa berkas/subfolder tapi kuota tercatat > 0
-                if (empty($folders) && $student->quota_used > 0) {
-                    $filesInRoot = @File::files($studentRoot);
-                    if (empty($filesInRoot)) {
-                        $student->update(['quota_used' => 0]);
-                    }
+                // Sinkronisasi kuota real-time dari disk fisik (termasuk upload/hapus via SMB)
+                $actualBytes = StorageService::calculateDirectorySize($studentRoot);
+                if ((int) $student->quota_used !== $actualBytes) {
+                    $student->quota_used = $actualBytes;
+                    User::where('id', $student->id)->update(['quota_used' => $actualBytes]);
                 }
             } elseif ($student->quota_used > 0) {
                 // Folder fisik mahasiswa belum ada di disk tapi kuota di DB > 0
-                $student->update(['quota_used' => 0]);
+                $student->quota_used = 0;
+                User::where('id', $student->id)->update(['quota_used' => 0]);
             }
             $studentFoldersMap[$student->id] = $folders;
         }
